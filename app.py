@@ -1,9 +1,8 @@
 # ============================================================
-# AYÇA Business Market V1.0 Executive
-# Market / bakkal / perakende işletme karar destek paneli
+# AYÇA Business Market V1.1 Executive Dashboard
+# Market / Perakende İşletme Yönetim Paneli
 # ------------------------------------------------------------
 # Beklenen Excel sayfası: AYCA_BUSINESS_DATA
-# Örnek veri: ayca_business_market_ornek_veri_v1.xlsx
 # Çalıştırma:
 #   pip install streamlit pandas numpy openpyxl plotly
 #   streamlit run app.py
@@ -14,7 +13,8 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from html import escape
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -30,425 +30,735 @@ st.set_page_config(
 )
 
 # ============================================================
-# CSS
+# CSS / TEMA - V1.1
+# Bu sürümde büyük rakamlarda kart/buton taşması düzeltildi.
 # ============================================================
 st.markdown("""
 <style>
-:root{--bg:#F8FAFC;--panel:#FFFFFF;--border:#E2E8F0;--text:#0F172A;--muted:#64748B;--blue:#2563EB;--green:#10B981;--red:#EF4444;--orange:#F59E0B;--purple:#8B5CF6;}
-html,body,[data-testid="stAppViewContainer"]{background:var(--bg);color:var(--text);} [data-testid="stHeader"]{background:rgba(248,250,252,.88);backdrop-filter:blur(10px);} [data-testid="stSidebar"]{background:linear-gradient(180deg,#FFFFFF 0%,#F1F5F9 100%);border-right:1px solid var(--border);} .block-container{padding-top:1.2rem;max-width:1580px;}
-.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}.title h1{font-size:32px;margin:0;font-weight:950;letter-spacing:-.7px}.title p{margin:5px 0 0;color:var(--muted);font-size:14px}.pill{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 16px;box-shadow:0 8px 24px rgba(15,23,42,.05);font-weight:900;white-space:nowrap}.metric-card{min-height:132px;background:linear-gradient(180deg,#fff 0%,#F8FBFF 100%);border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(15,23,42,.06);position:relative;overflow:hidden}.metric-label{color:var(--muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;margin-bottom:8px}.metric-value{font-size:29px;font-weight:950;letter-spacing:-.5px;margin-bottom:8px}.metric-sub{font-size:13px;color:var(--muted)}.up{color:var(--green);font-weight:900}.down{color:var(--red);font-weight:900}.section-title{font-size:22px;font-weight:950;margin:22px 0 12px;letter-spacing:-.4px}.card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(15,23,42,.05)}.ai-card{background:linear-gradient(135deg,#fff 0%,#EFF6FF 100%);border:1px solid #BFDBFE;border-radius:22px;padding:20px;box-shadow:0 12px 30px rgba(37,99,235,.08);margin:14px 0}.ai-title{color:var(--blue);font-size:18px;font-weight:950;margin-bottom:8px}.ai-text{font-size:14px;line-height:1.55}.grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.radar{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.radar-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:15px;box-shadow:0 10px 26px rgba(15,23,42,.05);min-height:112px}.radar-title{color:var(--muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;margin-bottom:9px}.radar-value{font-size:24px;font-weight:950;margin-bottom:5px}.radar-note{color:var(--muted);font-size:13px;line-height:1.35}.task-item{border-bottom:1px solid var(--border);padding:10px 0;font-size:14px;font-weight:760;line-height:1.45}.task-item:last-child{border-bottom:0}.score-big{font-size:54px;font-weight:950;letter-spacing:-2px;color:var(--blue);line-height:1;margin:4px 0 8px}.bar-bg{width:100%;height:10px;background:#E2E8F0;border-radius:999px;overflow:hidden}.bar-fill{height:10px;background:linear-gradient(90deg,#2563EB,#10B981);border-radius:999px}.small{color:var(--muted);font-size:13px}.stButton>button,.stDownloadButton>button{border-radius:13px;border:1px solid #BFDBFE;background:#fff;color:#2563EB;font-weight:900}.stTabs [data-baseweb="tab"]{background:#fff;border:1px solid var(--border);border-radius:13px;padding:10px 16px;font-weight:800}.stTabs [aria-selected="true"]{background:#DBEAFE;color:#2563EB;border-color:#BFDBFE}@media(max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}.radar{grid-template-columns:1fr 1fr}}
+:root{
+  --bg:#F8FAFC;--panel:#FFFFFF;--border:#E2E8F0;--text:#0F172A;--muted:#64748B;
+  --blue:#2563EB;--green:#10B981;--orange:#F59E0B;--red:#EF4444;--purple:#8B5CF6;--cyan:#06B6D4;
+}
+html,body,[data-testid="stAppViewContainer"]{background:var(--bg);color:var(--text)}
+[data-testid="stHeader"]{background:rgba(248,250,252,.86);backdrop-filter:blur(10px)}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#FFFFFF 0%,#F1F5F9 100%);border-right:1px solid var(--border)}
+.block-container{padding-top:1.2rem;max-width:1580px}
+.ayca-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.ayca-title h1{margin:0;font-size:clamp(24px,2.2vw,32px);font-weight:950;letter-spacing:-.7px}
+.ayca-title p{margin:6px 0 0;color:var(--muted);font-size:14px}
+.header-pill{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 16px;box-shadow:0 8px 24px rgba(15,23,42,.05);font-weight:900;white-space:nowrap}
+.metric-card,.mini-card,.soft-panel,.exec-card,.task-card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 12px 30px rgba(15,23,42,.055);box-sizing:border-box;min-width:0}
+.metric-card{min-height:142px;background:linear-gradient(180deg,#fff 0%,#F8FBFF 100%);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+.metric-label{color:var(--muted);font-size:11px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;margin-bottom:4px;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+.metric-value{font-size:clamp(18px,1.65vw,25px);font-weight:950;margin-bottom:4px;letter-spacing:-.55px;line-height:1.08;white-space:normal;overflow-wrap:anywhere;word-break:break-word;font-variant-numeric:tabular-nums}
+.metric-sub{color:var(--muted);font-size:12px;line-height:1.25;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.metric-up{color:var(--green);font-size:12px;font-weight:900;white-space:nowrap}.metric-down{color:var(--red);font-size:12px;font-weight:900;white-space:nowrap}
+.section-title{font-size:21px;font-weight:950;margin:20px 0 12px;letter-spacing:-.3px}
+.exec-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin:14px 0 18px}.exec-card{background:linear-gradient(135deg,#FFFFFF 0%,#EFF6FF 100%);border-color:#BFDBFE}
+.exec-title{font-size:22px;font-weight:950;letter-spacing:-.4px;margin-bottom:8px}.exec-sub{color:var(--muted);font-size:14px;line-height:1.55;margin-bottom:14px}.exec-list-item{background:rgba(255,255,255,.82);border:1px solid rgba(226,232,240,.95);border-radius:16px;padding:12px 13px;margin:9px 0;font-size:14px;line-height:1.45;font-weight:760;overflow-wrap:anywhere}
+.score-big{font-size:clamp(38px,4vw,54px);font-weight:950;letter-spacing:-2px;color:var(--blue);line-height:1;margin:4px 0 8px}.score-label{color:var(--muted);font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:.35px}
+.health-row{margin:12px 0}.health-head{display:flex;justify-content:space-between;color:#334155;font-weight:900;font-size:13px;margin-bottom:6px;gap:8px}.health-bar-bg{height:10px;background:#E2E8F0;border-radius:999px;overflow:hidden}.health-bar-fill{height:10px;border-radius:999px;background:linear-gradient(90deg,#2563EB,#10B981)}
+.radar-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:12px 0 18px}.radar-card{background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:15px;box-shadow:0 10px 26px rgba(15,23,42,.05);min-height:116px;min-width:0;overflow:hidden}.radar-title{color:#64748B;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;margin-bottom:9px;line-height:1.25}.radar-value{font-size:clamp(16px,1.35vw,21px);font-weight:950;margin-bottom:5px;line-height:1.1;overflow-wrap:anywhere;word-break:break-word;font-variant-numeric:tabular-nums}.radar-note{color:#64748B;font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+.task-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0 18px}.task-item{border-bottom:1px solid #E2E8F0;padding:10px 0;font-size:14px;font-weight:760;line-height:1.45;overflow-wrap:anywhere}.task-item:last-child{border-bottom:0}
+.chip{display:inline-block;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900}.chip-red{background:#FEE2E2;color:#B91C1C}.chip-orange{background:#FEF3C7;color:#B45309}.chip-green{background:#DCFCE7;color:#047857}.chip-blue{background:#DBEAFE;color:#1D4ED8}.chip-purple{background:#EDE9FE;color:#6D28D9}.small-muted{color:#64748B;font-size:13px}
+.stTabs [data-baseweb="tab"]{background:#fff;border:1px solid var(--border);border-radius:13px;padding:10px 14px;font-weight:800;white-space:normal;min-height:42px}.stTabs [aria-selected="true"]{background:#DBEAFE;color:#2563EB;border-color:#BFDBFE}div[data-testid="stDataFrame"]{border-radius:16px;overflow:hidden;border:1px solid var(--border)}
+.stButton>button,.stDownloadButton>button{border-radius:13px;border:1px solid #BFDBFE;background:#fff;color:#2563EB;font-weight:900;white-space:normal;min-height:44px;line-height:1.2;overflow-wrap:anywhere}.stButton>button:hover,.stDownloadButton>button:hover{border-color:#2563EB;background:#DBEAFE;color:#2563EB}
+@media(max-width:1300px){.radar-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.metric-value{font-size:20px}}
+@media(max-width:1100px){.exec-grid,.task-grid{grid-template-columns:1fr}.radar-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.radar-grid{grid-template-columns:1fr}.metric-card{min-height:120px}.header-pill{white-space:normal}.stTabs [data-baseweb="tab"]{font-size:12px;padding:8px 10px}}
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# Helpers
+# DEMO AUTH
 # ============================================================
-def normalize_col_name(name: str) -> str:
+DEMO_USERS = {
+    "basic": {"password": "basic2026", "name": "Basic Demo", "store": "AYÇA Market", "membership": "Basic"},
+    "premium": {"password": "premium2026", "name": "Premium Demo", "store": "AYÇA Market", "membership": "Premium"},
+}
+
+
+def safe_rerun():
+    try:
+        st.rerun()
+    except Exception:
+        st.experimental_rerun()
+
+
+def is_premium() -> bool:
+    return st.session_state.get("membership", "Basic").lower() == "premium"
+
+
+def show_auth():
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"]{display:none}
+        .login-card{background:#fff;border:1px solid #E2E8F0;border-radius:28px;padding:30px;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+        .login-hero{background:linear-gradient(135deg,#fff 0%,#EFF6FF 55%,#DCFCE7 100%);border:1px solid #BFDBFE;border-radius:28px;padding:34px;box-shadow:0 18px 45px rgba(15,23,42,.08);min-height:420px}
+        .login-title{font-size:38px;line-height:1.08;font-weight:950;letter-spacing:-1px;color:#0F172A;margin-bottom:12px}
+        .login-sub{color:#64748B;font-size:15px;line-height:1.6;margin-bottom:24px}
+        .feature-row{background:rgba(255,255,255,.75);border:1px solid rgba(226,232,240,.8);border-radius:16px;padding:11px 13px;margin:10px 0;font-weight:750;font-size:14px}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    left, right = st.columns([1.1, .9])
+    with left:
+        st.markdown(
+            """
+            <div class="login-hero">
+                <div style="font-size:44px">🛒</div>
+                <div class="login-title">AYÇA Business Market</div>
+                <div class="login-sub">Market sahibinin sabah ilk bakacağı dijital yönetim paneli. Satış, stok, kârlılık, raf verimliliği, sermaye kilidi ve tahsilat açığını tek ekranda yorumlar.</div>
+                <div class="feature-row">💰 Hangi kategori en kârlı?</div>
+                <div class="feature-row">📦 Param hangi stoklarda kilitli?</div>
+                <div class="feature-row">💀 Ölü stoklar ne kadar sermaye bağlıyor?</div>
+                <div class="feature-row">🤖 Bugün ne yapmalıyım?</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with right:
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+        st.markdown("### Giriş Yap")
+        username = st.text_input("Kullanıcı adı", value="premium")
+        password = st.text_input("Şifre", type="password")
+        if st.button("🚀 Dashboard'a Giriş Yap", use_container_width=True):
+            user = DEMO_USERS.get(username.strip().lower())
+            if user and password == user["password"]:
+                st.session_state.authenticated = True
+                st.session_state.auth_user = user["name"]
+                st.session_state.auth_store = user["store"]
+                st.session_state.membership = user["membership"]
+                safe_rerun()
+            else:
+                st.error("Premium: premium / premium2026 · Basic: basic / basic2026")
+        st.info("Premium demo: premium / premium2026\n\nBasic demo: basic / basic2026")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if not st.session_state.authenticated:
+    show_auth()
+    st.stop()
+
+# Basic lock wrappers
+_orig_dataframe = st.dataframe
+_orig_plotly = st.plotly_chart
+_orig_download = st.download_button
+
+
+def locked_info(msg="Basic demo bu bölümde sınırlı önizleme gösterir. Detaylar Premium'da açılır."):
+    st.warning("🔒 " + msg)
+
+
+def df_limited(data=None, *args, **kwargs):
+    if is_premium():
+        return _orig_dataframe(data, *args, **kwargs)
+    locked_info("Tablo en fazla 3 satır gösterilir.")
+    return _orig_dataframe(data.head(3) if hasattr(data, "head") else data, *args, **kwargs)
+
+
+def chart_limited(*args, **kwargs):
+    if is_premium():
+        return _orig_plotly(*args, **kwargs)
+    locked_info("Grafikler Premium üyelikte görünür.")
+
+
+def download_limited(*args, **kwargs):
+    if is_premium():
+        return _orig_download(*args, **kwargs)
+    locked_info("Excel raporu Premium üyelikte indirilir.")
+    return False
+
+
+st.dataframe = df_limited
+st.plotly_chart = chart_limited
+st.download_button = download_limited
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def normalize(value: Any) -> str:
     tr = str.maketrans("çğıöşüİı", "cgiosuii")
-    name = str(name).strip().lower().translate(tr)
-    name = re.sub(r"[^a-z0-9]+", "_", name)
-    return re.sub(r"_+", "_", name).strip("_")
+    return re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", str(value).strip().lower().translate(tr))).strip("_")
 
 
-def find_col(columns, candidates) -> Optional[str]:
-    normalized = {c: normalize_col_name(c) for c in columns}
-    for cand in candidates:
-        cn = normalize_col_name(cand)
-        for original, norm in normalized.items():
-            if cn == norm:
-                return original
-    for cand in candidates:
-        cn = normalize_col_name(cand)
-        for original, norm in normalized.items():
-            if cn in norm:
-                return original
+def find_col(cols, candidates):
+    norm = {c: normalize(c) for c in cols}
+    for candidate in candidates:
+        cn = normalize(candidate)
+        for c, n in norm.items():
+            if cn == n:
+                return c
+    for candidate in candidates:
+        cn = normalize(candidate)
+        for c, n in norm.items():
+            if cn in n:
+                return c
     return None
 
 
-def money_fmt(x) -> str:
+def compact_money(x):
+    """Kartlarda taşma olmaması için büyük rakamları kısaltır."""
+    try:
+        val = float(x)
+    except Exception:
+        return "₺0"
+    sign = "-" if val < 0 else ""
+    val = abs(val)
+    if val >= 1_000_000_000:
+        return f"{sign}₺{val/1_000_000_000:.1f} Mr".replace(".", ",")
+    if val >= 1_000_000:
+        return f"{sign}₺{val/1_000_000:.1f} Mn".replace(".", ",")
+    if val >= 100_000:
+        return f"{sign}₺{val/1_000:.0f} Bin"
+    return f"{sign}₺{val:,.0f}".replace(",", ".")
+
+
+def money(x):
     try:
         return f"₺{float(x):,.0f}".replace(",", ".")
     except Exception:
         return "₺0"
 
 
-def num_fmt(x, d=1) -> str:
+def num(x, d=1):
     try:
-        if pd.isna(x) or np.isinf(float(x)):
-            return "0"
         return f"{float(x):,.{d}f}".replace(",", "X").replace(".", ",").replace("X", ".")
     except Exception:
         return "0"
 
 
-def pct_fmt(x) -> str:
-    return "%" + num_fmt(float(x) * 100 if pd.notna(x) else 0, 1)
-
-
-def trend(current, previous):
+def pct(x):
     try:
-        if previous == 0:
-            return "▲ yeni", "up"
-        r = (current - previous) / previous
-        return ("▲ " + pct_fmt(r), "up") if r >= 0 else ("▼ " + pct_fmt(abs(r)), "down")
+        return "%" + num(float(x) * 100, 1)
     except Exception:
-        return "", "up"
+        return "%0,0"
 
 
-def metric_card(label, value, sub="", trend_text="", trend_class="up"):
-    t = f" <span class='{trend_class}'>{trend_text}</span>" if trend_text else ""
-    st.markdown(f"""
-    <div class="metric-card"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-sub">{sub}{t}</div></div>
-    """, unsafe_allow_html=True)
+def trend(cur, prev):
+    try:
+        if float(prev) == 0:
+            return ("▲ yeni", "metric-up") if float(cur) > 0 else ("-", "metric-up")
+        ratio = (float(cur) - float(prev)) / float(prev)
+        return (("▲ " + pct(ratio), "metric-up") if ratio >= 0 else ("▼ " + pct(abs(ratio)), "metric-down"))
+    except Exception:
+        return ("-", "metric-up")
 
 
-def plot_theme(fig, height=360):
-    fig.update_layout(height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#FFFFFF", font=dict(color="#0F172A"), margin=dict(l=10,r=10,t=48,b=10), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"))
+def date_parse(s):
+    return pd.to_datetime(s, errors="coerce", dayfirst=True)
+
+
+def metric_card(label, value, sub="", tr=None, tc="metric-up"):
+    th = f" <span class='{tc}'>{escape(str(tr))}</span>" if tr else ""
+    st.markdown(
+        f"""
+        <div class="metric-card">
+          <div>
+            <div class="metric-label">{escape(str(label))}</div>
+            <div class="metric-value">{escape(str(value))}</div>
+          </div>
+          <div class="metric-sub">{escape(str(sub))}{th}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def apply_theme(fig, h=360):
+    fig.update_layout(
+        height=h,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#FFFFFF",
+        font=dict(color="#0F172A"),
+        margin=dict(l=10, r=10, t=48, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
     fig.update_xaxes(showgrid=False, color="#64748B")
     fig.update_yaxes(gridcolor="#E2E8F0", color="#64748B")
     return fig
 
+# ============================================================
+# DATA READER
+# ============================================================
 
-def read_excel_smart(uploaded_file):
-    xls = pd.ExcelFile(uploaded_file)
-    preferred = None
+def read_excel_smart(file):
+    xls = pd.ExcelFile(file)
+    sheet = None
     for s in xls.sheet_names:
-        if normalize_col_name(s) == "ayca_business_data":
-            preferred = s; break
-    if preferred is None:
+        if normalize(s) == "ayca_business_data":
+            sheet = s
+            break
+    if sheet is None:
         for s in xls.sheet_names:
-            if any(k in normalize_col_name(s) for k in ["data", "veri", "satis", "market"]):
-                preferred = s; break
-    if preferred is None:
-        preferred = xls.sheet_names[0]
-    return pd.read_excel(uploaded_file, sheet_name=preferred), preferred
+            if any(k in normalize(s) for k in ["data", "veri", "satis", "market"]):
+                sheet = s
+                break
+    if sheet is None:
+        sheet = xls.sheet_names[0]
+    return pd.read_excel(file, sheet_name=sheet), sheet, xls.sheet_names
 
 
-def standardize(raw: pd.DataFrame) -> pd.DataFrame:
+def standardize(raw):
     cols = list(raw.columns)
-    m = {
-        "tarih": find_col(cols, ["Tarih", "Satış Tarihi"]),
-        "fis": find_col(cols, ["Fiş No", "Fis No", "Belge No"]),
-        "barkod": find_col(cols, ["Barkod", "Barcode"]),
-        "urun": find_col(cols, ["Ürün Adı", "Urun Adi", "Mal Adı"]),
-        "marka": find_col(cols, ["Marka", "Brand"]),
-        "kategori": find_col(cols, ["Kategori", "Category"]),
+    mapping = {
+        "tarih": find_col(cols, ["Tarih"]),
+        "fis": find_col(cols, ["Fiş No", "Fis No", "Fatura No"]),
+        "kanal": find_col(cols, ["Kanal", "Kaynak"]),
+        "barkod": find_col(cols, ["Barkod"]),
+        "urun": find_col(cols, ["Ürün Adı", "Urun Adi", "Ürün"]),
+        "marka": find_col(cols, ["Marka"]),
+        "kategori": find_col(cols, ["Kategori", "Grup"]),
         "alt": find_col(cols, ["Alt Kategori", "Alt Grup"]),
-        "adet": find_col(cols, ["Adet", "Miktar", "Satış Adedi"]),
-        "alis": find_col(cols, ["Alış Birim TL", "Alis Birim TL", "Alış Fiyatı"]),
-        "satis": find_col(cols, ["Satış Birim TL", "Satis Birim TL", "Satış Fiyatı"]),
-        "ciro": find_col(cols, ["Ciro TL", "Satış Tutarı", "Ciro"]),
+        "adet": find_col(cols, ["Adet", "Miktar"]),
+        "alis": find_col(cols, ["Alış Birim TL", "Alis Birim TL", "Alış Fiyatı", "Alis Fiyati"]),
+        "satis": find_col(cols, ["Satış Birim TL", "Satis Birim TL", "Satış Fiyatı", "Satis Fiyati"]),
+        "ciro": find_col(cols, ["Ciro TL", "Ciro", "Satış Tutarı"]),
         "maliyet": find_col(cols, ["Maliyet TL", "Maliyet"]),
-        "kar": find_col(cols, ["Brüt Kar TL", "Brut Kar TL", "Kar TL"]),
-        "odeme": find_col(cols, ["Ödeme Tipi", "Odeme Tipi", "Tahsilat Tipi"]),
-        "veresiye": find_col(cols, ["Veresiye Tutar TL", "Tahsilat Açığı", "Tahsilat Acigi"]),
-        "stok": find_col(cols, ["Mevcut Stok", "Stok", "Kalan Stok"]),
-        "stok_degeri": find_col(cols, ["Stok Değeri TL", "Stok Degeri TL"]),
-        "son90": find_col(cols, ["Son 90 Gün Satış", "Son 90 Gun Satis", "Son 90"]),
-        "bitis": find_col(cols, ["Tahmini Bitiş Günü", "Tahmini Bitis Gunu"]),
-        "skt": find_col(cols, ["SKT", "Miad", "Son Kullanma Tarihi"]),
+        "kar": find_col(cols, ["Brüt Kar TL", "Brut Kar TL", "Kar TL", "Kâr TL"]),
+        "marj": find_col(cols, ["Brüt Kar %", "Brut Kar %", "Kar Marjı"]),
+        "odeme": find_col(cols, ["Ödeme Tipi", "Odeme Tipi"]),
+        "tahsil_durum": find_col(cols, ["Tahsilat Durumu"]),
+        "vade": find_col(cols, ["Tahsilat Vade Tarihi", "Vade Tarihi"]),
+        "tahsil_edilen": find_col(cols, ["Tahsil Edilen TL"]),
+        "acik": find_col(cols, ["Açık Tahsilat TL", "Acik Tahsilat TL", "Veresiye", "Alacak"]),
+        "stok": find_col(cols, ["Mevcut Stok", "Stok", "Stok Adedi"]),
+        "skt": find_col(cols, ["SKT", "Son Kullanma Tarihi", "Miad Tarihi"]),
         "tedarikci": find_col(cols, ["Tedarikçi", "Tedarikci"]),
-        "raf": find_col(cols, ["Raf Kodu", "Raf Lokasyonu", "Raf"]),
-        "raf_cm": find_col(cols, ["Raf Payı CM", "Raf Payi CM", "Raf Cm"]),
-        "son_satis": find_col(cols, ["Son Satış Tarihi", "Son Satis Tarihi"]),
+        "raf_kodu": find_col(cols, ["Raf Kodu", "Raf Lokasyonu"]),
+        "raf_metre": find_col(cols, ["Raf Metre", "Raf Alanı", "Raf Alani"]),
+        "son90": find_col(cols, ["Son 90 Gün Satış", "Son 90 Gun Satis", "son_90", "son90"]),
+        "son180": find_col(cols, ["Son 180 Gün Satış", "Son 180 Gun Satis", "son_180", "son180"]),
+        "kampanya": find_col(cols, ["Kampanya"]),
+        "iade": find_col(cols, ["İade Edilebilir", "Iade Edilebilir"]),
+        "min": find_col(cols, ["Min Stok"]),
+        "max": find_col(cols, ["Max Stok"]),
     }
     required = ["tarih", "urun", "kategori", "adet", "ciro", "kar", "stok", "son90"]
-    missing = [x for x in required if m.get(x) is None]
+    missing = [x for x in required if mapping[x] is None]
     if missing:
         raise ValueError("Eksik zorunlu kolonlar: " + ", ".join(missing))
 
     df = pd.DataFrame()
-    df["tarih"] = pd.to_datetime(raw[m["tarih"]], errors="coerce", dayfirst=True)
-    df["fis"] = raw[m["fis"]].astype(str) if m["fis"] else ""
-    df["barkod"] = raw[m["barkod"]].astype(str) if m["barkod"] else ""
-    df["urun"] = raw[m["urun"]].astype(str)
-    df["marka"] = raw[m["marka"]].astype(str) if m["marka"] else "Bilinmiyor"
-    df["kategori"] = raw[m["kategori"]].astype(str)
-    df["alt_kategori"] = raw[m["alt"]].astype(str) if m["alt"] else "Genel"
-    df["adet"] = pd.to_numeric(raw[m["adet"]], errors="coerce").fillna(0)
-    df["alis_birim"] = pd.to_numeric(raw[m["alis"]], errors="coerce").fillna(0) if m["alis"] else 0
-    df["satis_birim"] = pd.to_numeric(raw[m["satis"]], errors="coerce").fillna(0) if m["satis"] else 0
-    df["ciro"] = pd.to_numeric(raw[m["ciro"]], errors="coerce").fillna(0)
-    df["maliyet"] = pd.to_numeric(raw[m["maliyet"]], errors="coerce").fillna(0) if m["maliyet"] else df["adet"] * df["alis_birim"]
-    df["brut_kar"] = pd.to_numeric(raw[m["kar"]], errors="coerce").fillna(0)
-    df["odeme"] = raw[m["odeme"]].astype(str) if m["odeme"] else "Bilinmiyor"
-    df["veresiye"] = pd.to_numeric(raw[m["veresiye"]], errors="coerce").fillna(0) if m["veresiye"] else np.where(df["odeme"].str.contains("veresiye", case=False, na=False), df["ciro"], 0)
-    df["stok"] = pd.to_numeric(raw[m["stok"]], errors="coerce").fillna(0)
-    df["stok_degeri_raw"] = pd.to_numeric(raw[m["stok_degeri"]], errors="coerce").fillna(0) if m["stok_degeri"] else 0
-    df["son90"] = pd.to_numeric(raw[m["son90"]], errors="coerce").fillna(0)
-    df["bitis_raw"] = pd.to_numeric(raw[m["bitis"]], errors="coerce").fillna(np.nan) if m["bitis"] else np.nan
-    df["skt"] = pd.to_datetime(raw[m["skt"]], errors="coerce", dayfirst=True) if m["skt"] else pd.NaT
-    df["tedarikci"] = raw[m["tedarikci"]].astype(str) if m["tedarikci"] else "Bilinmiyor"
-    df["raf"] = raw[m["raf"]].astype(str) if m["raf"] else "Bilinmiyor"
-    df["raf_cm"] = pd.to_numeric(raw[m["raf_cm"]], errors="coerce").fillna(20) if m["raf_cm"] else 20
-    df["son_satis"] = pd.to_datetime(raw[m["son_satis"]], errors="coerce", dayfirst=True) if m["son_satis"] else df["tarih"]
-    df = df.dropna(subset=["tarih"])
-    return df
+    df["tarih"] = date_parse(raw[mapping["tarih"]])
+    df["fis"] = raw[mapping["fis"]].astype(str) if mapping["fis"] else np.arange(len(raw)).astype(str)
+    df["kanal"] = raw[mapping["kanal"]].astype(str) if mapping["kanal"] else "Mağaza"
+    df["barkod"] = raw[mapping["barkod"]].astype(str) if mapping["barkod"] else ""
+    df["urun"] = raw[mapping["urun"]].astype(str)
+    df["marka"] = raw[mapping["marka"]].astype(str) if mapping["marka"] else "Bilinmiyor"
+    df["kategori"] = raw[mapping["kategori"]].astype(str)
+    df["alt"] = raw[mapping["alt"]].astype(str) if mapping["alt"] else "Genel"
+
+    numeric_defaults = [
+        ("adet", "adet", 0), ("alis", "alis", 0), ("satis", "satis", 0), ("ciro", "ciro", 0),
+        ("maliyet", "maliyet", np.nan), ("kar", "kar", 0), ("stok", "stok", 0), ("son90", "son90", 0),
+        ("son180", "son180", 0), ("raf_metre", "raf_metre", 0.5), ("min_stok", "min", 0), ("max_stok", "max", 0),
+        ("tahsil_edilen", "tahsil_edilen", 0), ("acik_tahsilat", "acik", 0),
+    ]
+    for col, key, default in numeric_defaults:
+        if mapping.get(key):
+            df[col] = pd.to_numeric(raw[mapping[key]], errors="coerce").fillna(default)
+        else:
+            df[col] = default
+
+    df["maliyet"] = df["maliyet"].fillna(df["adet"] * df["alis"])
+    if mapping["marj"]:
+        df["marj"] = pd.to_numeric(raw[mapping["marj"]], errors="coerce").fillna(np.where(df["ciro"] > 0, df["kar"] / df["ciro"], 0))
+    else:
+        df["marj"] = np.where(df["ciro"] > 0, df["kar"] / df["ciro"], 0)
+
+    df["odeme"] = raw[mapping["odeme"]].astype(str) if mapping["odeme"] else "Bilinmiyor"
+    df["tahsil_durum"] = raw[mapping["tahsil_durum"]].astype(str) if mapping["tahsil_durum"] else "Tahsil Edildi"
+    df["vade"] = date_parse(raw[mapping["vade"]]) if mapping["vade"] else df["tarih"]
+    df["skt"] = date_parse(raw[mapping["skt"]]) if mapping["skt"] else pd.NaT
+    df["tedarikci"] = raw[mapping["tedarikci"]].astype(str) if mapping["tedarikci"] else "Bilinmiyor"
+    df["raf_kodu"] = raw[mapping["raf_kodu"]].astype(str) if mapping["raf_kodu"] else "Bilinmiyor"
+    df["kampanya"] = raw[mapping["kampanya"]].astype(str) if mapping["kampanya"] else "Hayır"
+    df["iade"] = raw[mapping["iade"]].astype(str) if mapping["iade"] else "Hayır"
+    return df.dropna(subset=["tarih"])
 
 
-def product_table(df: pd.DataFrame, today: pd.Timestamp) -> pd.DataFrame:
-    d = df.sort_values("tarih")
-    p = d.groupby(["barkod", "urun"], dropna=False).agg(
-        marka=("marka", "last"), kategori=("kategori", "last"), alt_kategori=("alt_kategori", "last"),
-        toplam_adet=("adet", "sum"), toplam_ciro=("ciro", "sum"), toplam_maliyet=("maliyet", "sum"), toplam_kar=("brut_kar", "sum"),
-        ort_alis=("alis_birim", "mean"), ort_satis=("satis_birim", "mean"), stok=("stok", "last"), stok_degeri_raw=("stok_degeri_raw", "last"),
-        son90=("son90", "last"), bitis_raw=("bitis_raw", "last"), skt=("skt", "last"), tedarikci=("tedarikci", "last"), raf=("raf", "last"), raf_cm=("raf_cm", "last"), son_satis=("son_satis", "max"),
-        islem=("fis", pd.Series.nunique)
+def product_table(df, today):
+    s = df.sort_values("tarih")
+    p = s.groupby(["barkod", "urun"], dropna=False).agg(
+        marka=("marka", "last"), kategori=("kategori", "last"), alt=("alt", "last"), toplam_adet=("adet", "sum"),
+        toplam_ciro=("ciro", "sum"), toplam_maliyet=("maliyet", "sum"), toplam_kar=("kar", "sum"),
+        ort_satis=("satis", "mean"), ort_alis=("alis", "mean"), stok=("stok", "last"), skt=("skt", "last"),
+        tedarikci=("tedarikci", "last"), raf_kodu=("raf_kodu", "last"), raf_metre=("raf_metre", "last"),
+        son90=("son90", "last"), son180=("son180", "last"), min_stok=("min_stok", "last"), max_stok=("max_stok", "last"),
+        iade=("iade", "last"), son_satis=("tarih", "max"), islem=("fis", "nunique"),
     ).reset_index()
     p["kar_marji"] = np.where(p["toplam_ciro"] > 0, p["toplam_kar"] / p["toplam_ciro"], 0)
-    p["gunluk_satis"] = p["son90"] / 90
-    p["tahmini_bitis_gunu"] = np.where(p["gunluk_satis"] > 0, p["stok"] / p["gunluk_satis"], np.inf)
-    p["stok_degeri"] = np.where(p["stok_degeri_raw"] > 0, p["stok_degeri_raw"], p["stok"] * p["ort_alis"])
-    p["stok_devir"] = np.where(p["stok_degeri"] > 0, p["toplam_ciro"] / p["stok_degeri"], np.inf)
-    p["raf_verim_ciro"] = np.where(p["raf_cm"] > 0, p["toplam_ciro"] / p["raf_cm"], 0)
-    p["raf_verim_kar"] = np.where(p["raf_cm"] > 0, p["toplam_kar"] / p["raf_cm"], 0)
+    p["gunluk_tuketim"] = p["son90"] / 90
+    p["tahmini_bitis_gunu"] = np.where(p["gunluk_tuketim"] > 0, p["stok"] / p["gunluk_tuketim"], np.inf)
+    p["stok_degeri"] = p["stok"] * p["ort_alis"]
     p["skt_kalan_gun"] = (p["skt"] - today).dt.days
     p["son_satis_kac_gun"] = (today - p["son_satis"]).dt.days
+    p["raf_verimlilik"] = np.where(p["raf_metre"] > 0, p["toplam_kar"] / p["raf_metre"], 0)
+    p["stok_devir"] = np.where(p["stok_degeri"] > 0, p["toplam_ciro"] / p["stok_degeri"], 0)
     return p
 
 
-def classify(p: pd.DataFrame, critical_days, warning_days, dead_days):
-    q = p.copy()
-    q["hiz_sinifi"] = np.select(
-        [q["son90"] <= 0, q["tahmini_bitis_gunu"] <= critical_days, q["tahmini_bitis_gunu"] <= warning_days, q["tahmini_bitis_gunu"] > 90],
-        ["Hareketsiz", "Acil", "Bu Hafta", "Yavaş"], default="Normal")
-    q["olu_stok_mu"] = (q["stok"] > 0) & ((q["son90"] <= 0) | (q["son_satis_kac_gun"] >= dead_days))
-    q["sermaye_sinifi"] = np.select([q["olu_stok_mu"], q["tahmini_bitis_gunu"] > 90, q["tahmini_bitis_gunu"] <= warning_days], ["Ölü/Yavaş", "Yavaş Dönen", "Hızlı Dönen"], default="Normal")
-    q["siparis_adedi"] = np.ceil((q["gunluk_satis"] * warning_days * 1.7) - q["stok"]).clip(lower=0)
-    q["siparis_maliyeti"] = q["siparis_adedi"] * q["ort_alis"]
-    q["kampanya_onerisi"] = np.select(
-        [q["olu_stok_mu"], (q["son_satis_kac_gun"] > 60) & (q["stok_degeri"] > 5000), q["kar_marji"] < 0.10],
-        ["İndirim/Kampanya", "Raf azalt + kampanya", "Fiyat/maliyet kontrol"], default="Takip")
-    return q
+def classify(p, critical, warning, dead_days, skt_days):
+    p = p.copy()
+    p["olu_stok_mu"] = (p["stok"] > 0) & ((p["son90"] <= 0) | (p["son_satis_kac_gun"] >= dead_days))
+    p["yavas_stok_mu"] = (p["stok"] > 0) & (p["stok_devir"] < 0.60) & (~p["olu_stok_mu"])
+    p["kritik_stok_mu"] = (p["gunluk_tuketim"] > 0) & (p["tahmini_bitis_gunu"] <= critical)
+    p["uyari_stok_mu"] = (p["gunluk_tuketim"] > 0) & (p["tahmini_bitis_gunu"] <= warning)
+    p["skt_risk_mu"] = p["skt_kalan_gun"].notna() & (p["skt_kalan_gun"] <= skt_days)
+    p["siparis_adedi"] = np.ceil(np.maximum(0, (warning * 2 * p["gunluk_tuketim"]) - p["stok"]))
+    p["siparis_maliyeti"] = p["siparis_adedi"] * p["ort_alis"]
+    p["siparis_oncelik"] = np.select([p["kritik_stok_mu"], p["uyari_stok_mu"]], ["Acil", "Bu Hafta"], default="Takip")
+    p["aksiyon"] = np.select(
+        [p["olu_stok_mu"], p["skt_risk_mu"], p["kritik_stok_mu"], p["kar_marji"] < 0.10],
+        ["Kampanya / iade / raf azalt", "Öne çıkar / kampanya", "Acil sipariş", "Fiyat-maliyet kontrolü"],
+        default="Takip et",
+    )
+    return p
 
 
-def score_business(p, period_df, prev_df, current_margin, previous_margin, veresiye_total):
+def business_score(p, df, period, prev):
     total = max(1, len(p))
-    critical = len(p[(p["gunluk_satis"] > 0) & (p["tahmini_bitis_gunu"] <= 7)]) / total
-    dead = len(p[p["olu_stok_mu"]]) / total
-    slow_value_ratio = p[p["sermaye_sinifi"].isin(["Ölü/Yavaş", "Yavaş Dönen"])] ["stok_degeri"].sum() / max(1, p["stok_degeri"].sum())
-    low_margin = len(p[(p["toplam_ciro"] > 0) & (p["kar_marji"] < 0.10)]) / total
-    c = period_df["ciro"].sum(); pr = prev_df["ciro"].sum()
-    sales = 0 if pr == 0 else (c-pr)/pr
-    score = 76 + sales*22 + current_margin*35 - critical*25 - dead*20 - slow_value_ratio*22 - low_margin*10 - min(.12, veresiye_total/max(c,1))*40
+    crit = len(p[p["kritik_stok_mu"]]) / total
+    dead_ratio = len(p[p["olu_stok_mu"]]) / total
+    slow = len(p[p["yavas_stok_mu"]]) / total
+    margin = period["kar"].sum() / period["ciro"].sum() if period["ciro"].sum() > 0 else 0
+    prev_ciro = prev["ciro"].sum()
+    cur_ciro = period["ciro"].sum()
+    sales_trend = (cur_ciro - prev_ciro) / prev_ciro if prev_ciro > 0 else 0
+    open_rate = df["acik_tahsilat"].sum() / df["ciro"].sum() if df["ciro"].sum() > 0 else 0
+    score = 78 + sales_trend * 18 + margin * 45 - crit * 22 - dead_ratio * 28 - slow * 14 - open_rate * 40
     return int(max(0, min(100, round(score))))
 
 
-def ai_advisor(period_df, prev_df, p, critical_df, dead_df, order_df, low_margin_df, veresiye_total):
-    messages = []
-    c = period_df["ciro"].sum(); pr = prev_df["ciro"].sum()
+def health_scores(p, period, prev):
+    cur = period["ciro"].sum()
+    pr = prev["ciro"].sum()
+    tr = (cur - pr) / pr if pr > 0 else 0
+    margin = period["kar"].sum() / cur if cur > 0 else 0
+    total = max(1, len(p))
+    crit = len(p[p["kritik_stok_mu"]]) / total
+    dead = len(p[p["olu_stok_mu"]]) / total
+    slow = len(p[p["yavas_stok_mu"]]) / total
+    return {
+        "Satış Performansı": int(max(0, min(100, 70 + tr * 50))),
+        "Kârlılık": int(max(0, min(100, 55 + margin * 150))),
+        "Stok Sağlığı": int(max(0, min(100, 100 - crit * 70 - dead * 45))),
+        "Sermaye Verimliliği": int(max(0, min(100, 100 - slow * 60 - dead * 65))),
+        "Kategori Performansı": int(max(0, min(100, 70 + len(p["kategori"].unique()) * 2))),
+        "Nakit Akışı": int(max(0, min(100, 100 - (period["acik_tahsilat"].sum() / cur * 220 if cur > 0 else 0)))),
+    }
+
+
+def ai_comment(p, period, prev, category):
+    msgs = []
+    cur = period["ciro"].sum()
+    pr = prev["ciro"].sum()
     if pr > 0:
-        r = (c-pr)/pr
-        messages.append(f"Seçilen dönemde ciro önceki döneme göre {pct_fmt(abs(r))} {'arttı' if r>=0 else 'düştü'}.")
-    cat_now = period_df.groupby("kategori")["ciro"].sum().sort_values(ascending=False)
-    cat_prev = prev_df.groupby("kategori")["ciro"].sum() if not prev_df.empty else pd.Series(dtype=float)
-    if not cat_now.empty:
-        best_cat = cat_now.index[0]
-        messages.append(f"Ciro lideri {best_cat}; bu kategori raf ve stok odağında tutulmalı.")
-    profit_cat = p.groupby("kategori")["toplam_kar"].sum().sort_values(ascending=False)
-    if not profit_cat.empty:
-        messages.append(f"En çok para kazandıran ürün grubu {profit_cat.index[0]}; sadece ciroya değil bu gruba da alan açılmalı.")
-    if not critical_df.empty:
-        x = critical_df.sort_values("tahmini_bitis_gunu").iloc[0]
-        messages.append(f"{x['urun']} yaklaşık {num_fmt(x['tahmini_bitis_gunu'],0)} gün içinde bitebilir; sipariş önceliği yüksek.")
-    if not dead_df.empty:
-        messages.append(f"Ölü/yavaş stoklarda {money_fmt(dead_df['stok_degeri'].sum())} sermaye kilitli; kampanya ve raf azaltma aksiyonu önerilir.")
-    if not order_df.empty:
-        messages.append(f"Sipariş motoru {len(order_df)} ürün için {money_fmt(order_df['siparis_maliyeti'].sum())} yaklaşık sipariş maliyeti hesapladı.")
-    if not low_margin_df.empty:
-        low = low_margin_df.sort_values("toplam_ciro", ascending=False).iloc[0]
-        messages.append(f"{low['urun']} yüksek satışa rağmen düşük marjlı; alış fiyatı veya satış fiyatı kontrol edilmeli.")
-    if veresiye_total > 0:
-        messages.append(f"Tahsilat/veresiye açığı {money_fmt(veresiye_total)}; nakit akışını bozabilir.")
-    return " ".join(messages) if messages else "Genel tablo dengeli. Satış, stok ve kârlılık riskleri düşük görünüyor."
+        ratio = (cur - pr) / pr
+        msgs.append(f"Güncel dönem cirosu önceki döneme göre {pct(abs(ratio))} {'arttı' if ratio >= 0 else 'düştü'}.")
+    if not category.empty:
+        best = category.sort_values("kar", ascending=False).iloc[0]
+        msgs.append(f"En kârlı ürün grubu {best['Kategori']} görünüyor; dönem kârı {money(best['kar'])}.")
+    dead = p[p["olu_stok_mu"]]
+    slow = p[p["yavas_stok_mu"]]
+    if not dead.empty:
+        msgs.append(f"Ölü stoklarda {money(dead['stok_degeri'].sum())} sermaye kilitli; kampanya/iade aksiyonu önerilir.")
+    if not slow.empty:
+        msgs.append(f"Yavaş dönen ürünlerde {money(slow['stok_degeri'].sum())} stok değeri var; raf alanı gözden geçirilmeli.")
+    crit = p[p["kritik_stok_mu"]]
+    if not crit.empty:
+        row = crit.sort_values("tahmini_bitis_gunu").iloc[0]
+        msgs.append(f"{row['urun']} yaklaşık {num(row['tahmini_bitis_gunu'], 0)} gün içinde bitebilir; acil sipariş kontrolü yapın.")
+    low = p[(p["toplam_ciro"] > 0) & (p["kar_marji"] < 0.10)]
+    if not low.empty:
+        msgs.append(f"{len(low)} üründe marj %10 altında; fiyat/maliyet kontrolü önerilir.")
+    return " ".join(msgs) if msgs else "Genel tablo dengeli görünüyor; satış, stok ve kârlılık takibi sürdürülmeli."
 
 
-def excel_report(df, p, cat, order_df, dead_df, low_margin_df, cash_df):
+def excel_report(df, p, cat, order, dead, slow, collection):
+    """Boş tablo gelse bile Excel raporunu güvenli üretir."""
     out = BytesIO()
+
+    def safe_df(x):
+        if x is None or not isinstance(x, pd.DataFrame) or x.empty:
+            return pd.DataFrame({"Bilgi": ["Bu bölüm için veri bulunamadı."]})
+        return x.replace([np.inf, -np.inf], np.nan)
+
     with pd.ExcelWriter(out, engine="openpyxl") as writer:
-        df.to_excel(writer, "Ham_Veri", index=False)
-        p.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Urun_Analizi", index=False)
-        cat.to_excel(writer, "Kategori_Analizi", index=False)
-        order_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Siparis", index=False)
-        dead_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Olu_Stok", index=False)
-        low_margin_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Dusuk_Marj", index=False)
-        cash_df.to_excel(writer, "Tahsilat", index=False)
+        pd.DataFrame({
+            "Rapor": ["AYÇA Business Market"],
+            "Sürüm": ["V1.1"],
+            "Durum": ["Başarıyla oluşturuldu"],
+            "Tarih": [pd.Timestamp.now()],
+        }).to_excel(writer, "Ozet", index=False)
+        safe_df(df).to_excel(writer, "Ham Veri", index=False)
+        safe_df(p).to_excel(writer, "Ürün Analizi", index=False)
+        safe_df(cat).to_excel(writer, "Kategori Karlılık", index=False)
+        safe_df(order).to_excel(writer, "Sipariş", index=False)
+        safe_df(dead).to_excel(writer, "Ölü Stok", index=False)
+        safe_df(slow).to_excel(writer, "Yavaş Stok", index=False)
+        safe_df(collection).to_excel(writer, "Tahsilat", index=False)
+    out.seek(0)
     return out.getvalue()
 
 # ============================================================
-# Sidebar
+# SIDEBAR
 # ============================================================
-st.sidebar.title("🛒 AYÇA Business")
-st.sidebar.caption("Market V1.0 Executive")
-market_adi = st.sidebar.text_input("Market Adı", "Demo Market")
-kullanici = st.sidebar.text_input("Kullanıcı", "Abdullah Bey")
-uploaded = st.sidebar.file_uploader("Market Excel dosyasını yükle", type=["xlsx", "xls"])
-st.sidebar.markdown("---")
-period = st.sidebar.selectbox("Analiz dönemi", ["Son 7 gün", "Son 14 gün", "Son 30 gün", "Son 90 gün", "Tüm veri"], index=2)
-critical_days = st.sidebar.slider("Acil stok günü", 1, 15, 5)
-warning_days = st.sidebar.slider("Sipariş plan günü", 7, 45, 21)
-dead_days = st.sidebar.slider("Ölü stok günü", 30, 240, 90)
-skt_days = st.sidebar.slider("SKT uyarı günü", 30, 180, 90)
+st.sidebar.success(f"Giriş: {st.session_state.get('auth_user', 'Demo')} · {st.session_state.get('membership', 'Basic')}")
+if st.sidebar.button("Çıkış Yap", use_container_width=True):
+    for key in ["authenticated", "auth_user", "auth_store", "membership"]:
+        st.session_state.pop(key, None)
+    safe_rerun()
 
-if uploaded is None:
-    st.markdown("""
-    <div class="header"><div class="title"><h1>AYÇA Business Market</h1><p>Market sahibinin dijital genel müdür yardımcısı.</p></div><div class="pill">Excel bekleniyor</div></div>
-    """, unsafe_allow_html=True)
-    st.info("Sol menüden örnek Excel dosyasını yükle: ayca_business_market_ornek_veri_v1.xlsx")
+st.sidebar.title("🛒 AYÇA Business")
+st.sidebar.caption("Market V1.1 Executive Demo")
+store_name = st.sidebar.text_input("Market / İşletme Adı", value="AYÇA Market")
+owner_name = st.sidebar.text_input("Kullanıcı", value="Abdullah Bey")
+file = st.sidebar.file_uploader("Market Excel dosyasını yükle", type=["xlsx", "xls"])
+st.sidebar.markdown("---")
+critical_days = st.sidebar.slider("Kritik stok günü", 1, 15, 5)
+warning_days = st.sidebar.slider("Sipariş uyarı günü", 7, 45, 21)
+dead_days = st.sidebar.slider("Ölü stok günü", 30, 180, 90)
+skt_days = st.sidebar.slider("SKT uyarı günü", 15, 180, 60)
+period_choice = st.sidebar.selectbox("Dashboard dönemi", ["Son 7 gün", "Son 14 gün", "Son 30 gün", "Son 90 gün", "Tüm veri"], index=2)
+
+if file is None:
+    st.markdown(
+        """
+        <div class="ayca-header">
+          <div class="ayca-title"><h1>AYÇA Business Market V1.1</h1><p>Market verinizi yükleyerek satış, stok, kârlılık ve sermaye analizini başlatın.</p></div>
+          <div class="header-pill">Dosya bekleniyor</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.info("Sol menüden AYCA_BUSINESS_DATA sayfalı demo Excel dosyasını yükleyin.")
     st.stop()
 
 try:
-    raw, sheet_name = read_excel_smart(uploaded)
+    raw, sheet, sheets = read_excel_smart(file)
     df = standardize(raw)
-except Exception as exc:
-    st.error(f"Dosya okunurken hata oluştu: {exc}")
+except Exception as e:
+    st.error(f"Dosya okunurken hata oluştu: {e}")
     st.stop()
 
+# ============================================================
+# ANALYSIS
+# ============================================================
 today = pd.Timestamp.today().normalize()
-p = classify(product_table(df, today), critical_days, warning_days, dead_days)
+p = classify(product_table(df, today), critical_days, warning_days, dead_days, skt_days)
 max_date = df["tarih"].max()
-if period == "Son 7 gün": start = max_date - pd.Timedelta(days=7)
-elif period == "Son 14 gün": start = max_date - pd.Timedelta(days=14)
-elif period == "Son 30 gün": start = max_date - pd.Timedelta(days=30)
-elif period == "Son 90 gün": start = max_date - pd.Timedelta(days=90)
-else: start = df["tarih"].min()
-period_df = df[df["tarih"] >= start].copy()
-days_len = max(1, (max_date - start).days)
-prev_df = df[(df["tarih"] >= start - pd.Timedelta(days=days_len)) & (df["tarih"] < start)].copy()
+if period_choice == "Son 7 gün":
+    start = max_date - pd.Timedelta(days=7)
+elif period_choice == "Son 14 gün":
+    start = max_date - pd.Timedelta(days=14)
+elif period_choice == "Son 30 gün":
+    start = max_date - pd.Timedelta(days=30)
+elif period_choice == "Son 90 gün":
+    start = max_date - pd.Timedelta(days=90)
+else:
+    start = df["tarih"].min()
 
-ciro = period_df["ciro"].sum(); prev_ciro = prev_df["ciro"].sum()
-kar = period_df["brut_kar"].sum(); prev_kar = prev_df["brut_kar"].sum()
-marj = kar / ciro if ciro else 0; prev_marj = prev_kar / prev_ciro if prev_ciro else 0
-fis = period_df["fis"].nunique(); avg_basket = ciro / fis if fis else 0
-stock_value = p["stok_degeri"].sum()
-veresiye_total = period_df["veresiye"].sum()
-critical_df = p[(p["gunluk_satis"] > 0) & (p["tahmini_bitis_gunu"] <= critical_days)].copy()
-order_df = p[(p["gunluk_satis"] > 0) & (p["siparis_adedi"] > 0)].copy().sort_values("siparis_maliyeti", ascending=False)
-dead_df = p[p["olu_stok_mu"]].copy().sort_values("stok_degeri", ascending=False)
-low_margin_df = p[(p["toplam_ciro"] > 0) & (p["kar_marji"] < 0.10)].copy().sort_values("toplam_ciro", ascending=False)
-skt_df = p[p["skt_kalan_gun"].notna() & (p["skt_kalan_gun"] <= skt_days)].copy().sort_values("skt_kalan_gun")
-score = score_business(p, period_df, prev_df, marj, prev_marj, veresiye_total)
+period = df[df["tarih"] >= start].copy()
+days_count = max(1, (max_date - start).days)
+prev = df[(df["tarih"] >= start - pd.Timedelta(days=days_count)) & (df["tarih"] < start)].copy()
 
-# Category table
-cat = p.groupby("kategori").agg(ciro=("toplam_ciro","sum"), kar=("toplam_kar","sum"), stok_degeri=("stok_degeri","sum"), sku=("urun","count"), raf_cm=("raf_cm","sum"), son90=("son90","sum")).reset_index()
-cat["marj"] = np.where(cat["ciro"]>0, cat["kar"]/cat["ciro"], 0)
-cat["raf_kar_verimi"] = np.where(cat["raf_cm"]>0, cat["kar"]/cat["raf_cm"], 0)
-cat["stok_devir"] = np.where(cat["stok_degeri"]>0, cat["ciro"]/cat["stok_degeri"], np.inf)
-cat = cat.sort_values("kar", ascending=False)
+cur_ciro = period["ciro"].sum()
+prev_ciro = prev["ciro"].sum()
+cur_kar = period["kar"].sum()
+prev_kar = prev["kar"].sum()
+margin = cur_kar / cur_ciro if cur_ciro > 0 else 0
+prev_margin = prev_kar / prev_ciro if prev_ciro > 0 else 0
+transactions = period["fis"].nunique()
+avg_basket = cur_ciro / transactions if transactions else 0
+total_stock = p["stok_degeri"].sum()
+open_collection = df["acik_tahsilat"].sum()
+score = business_score(p, df, period, prev)
 
-cash_df = period_df.groupby("odeme").agg(ciro=("ciro","sum"), veresiye=("veresiye","sum"), islem=("fis", pd.Series.nunique)).reset_index().sort_values("ciro", ascending=False)
+category = period.groupby("kategori").agg(
+    ciro=("ciro", "sum"), kar=("kar", "sum"), adet=("adet", "sum"), islem=("fis", "nunique"), acik=("acik_tahsilat", "sum")
+).reset_index().rename(columns={"kategori": "Kategori"})
+category["marj"] = np.where(category["ciro"] > 0, category["kar"] / category["ciro"], 0)
+cat_stock = p.groupby("kategori").agg(stok_degeri=("stok_degeri", "sum"), raf_metre=("raf_metre", "sum")).reset_index().rename(columns={"kategori": "Kategori"})
+category = category.merge(cat_stock, on="Kategori", how="left")
+category["raf_verimlilik"] = np.where(category["raf_metre"] > 0, category["kar"] / category["raf_metre"], 0)
+category["stok_devir"] = np.where(category["stok_degeri"] > 0, category["ciro"] / category["stok_degeri"], 0)
 
-st.markdown(f"""
-<div class="header"><div class="title"><h1>AYÇA Business Market V1.0</h1><p>{market_adi} · {period} · Sayfa: {sheet_name} · {datetime.now().strftime('%d.%m.%Y')}</p></div><div class="pill">İşletme Skoru: {score}/100</div></div>
-""", unsafe_allow_html=True)
+critical = p[p["kritik_stok_mu"]].copy()
+order = p[(p["uyari_stok_mu"]) & (p["siparis_adedi"] > 0)].copy()
+dead = p[p["olu_stok_mu"]].copy()
+slow = p[p["yavas_stok_mu"]].copy()
+skt = p[p["skt_risk_mu"]].copy()
+low_margin = p[(p["toplam_ciro"] > 0) & (p["kar_marji"] < 0.10)].copy()
+collection = df[df["acik_tahsilat"] > 0].copy()
 
-# KPI
-ct, cc = trend(ciro, prev_ciro); kt, kc = trend(kar, prev_kar); mt, mc = trend(marj, prev_marj)
+# ============================================================
+# UI
+# ============================================================
+st.markdown(
+    f"""
+    <div class="ayca-header">
+      <div class="ayca-title"><h1>AYÇA Business Market V1.1</h1><p>{escape(store_name)} · {period_choice} · Sayfa: {escape(str(sheet))} · {datetime.now().strftime('%d.%m.%Y')}</p></div>
+      <div class="header-pill">İşletme Skoru: {score}/100</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 cols = st.columns(6)
-with cols[0]: metric_card("Ciro", money_fmt(ciro), period, ct, cc)
-with cols[1]: metric_card("Brüt Kâr", money_fmt(kar), "Dönem kârı", kt, kc)
-with cols[2]: metric_card("Kâr Marjı", pct_fmt(marj), "Brüt kar / ciro", mt, mc)
-with cols[3]: metric_card("Toplam Stok Değeri", money_fmt(stock_value), "İçerideki mal değeri")
-with cols[4]: metric_card("Veresiye Açığı", money_fmt(veresiye_total), "Tahsilat riski")
-with cols[5]: metric_card("Ortalama Sepet", money_fmt(avg_basket), f"{fis} işlem")
+metric_args = [
+    ("Güncel Ciro", compact_money(cur_ciro), period_choice, *trend(cur_ciro, prev_ciro)),
+    ("Brüt Kâr", compact_money(cur_kar), "Dönem kârı", *trend(cur_kar, prev_kar)),
+    ("Kâr Marjı", pct(margin), "Brüt kâr / ciro", *trend(margin, prev_margin)),
+    ("Ortalama Sepet", compact_money(avg_basket), "Ciro / fiş", None, "metric-up"),
+    ("Stok Değeri", compact_money(total_stock), "Mevcut ürünlerin maliyet değeri", None, "metric-up"),
+    ("Tahsilat Açığı", compact_money(open_collection), "Açık veresiye / alacak", None, "metric-down"),
+]
+for col, args in zip(cols, metric_args):
+    with col:
+        metric_card(*args)
 
-# Executive AI block
-ai_text = ai_advisor(period_df, prev_df, p, critical_df, dead_df, order_df, low_margin_df, veresiye_total)
-st.markdown(f"""
-<div class="ai-card"><div class="ai-title">🤖 AYÇA Ticaret Asistanı</div><div class="ai-text">{ai_text}</div></div>
-""", unsafe_allow_html=True)
+health = health_scores(p, period, prev)
+health_html = "".join([
+    f'<div class="health-row"><div class="health-head"><span>{escape(str(k))}</span><span>{v}/100</span></div><div class="health-bar-bg"><div class="health-bar-fill" style="width:{v}%"></div></div></div>'
+    for k, v in health.items()
+])
+ai = ai_comment(p, period, prev, category)
 
-# Radar + daily tasks
-fast_value = p[p["sermaye_sinifi"]=="Hızlı Dönen"]["stok_degeri"].sum()
-slow_value = p[p["sermaye_sinifi"].isin(["Yavaş Dönen", "Ölü/Yavaş"])] ["stok_degeri"].sum()
-best_profit_cat = cat.iloc[0]["kategori"] if not cat.empty else "-"
-best_margin_cat = cat.sort_values("marj", ascending=False).iloc[0]["kategori"] if not cat.empty else "-"
-radar_html = f"""
-<div class="radar">
-<div class="radar-card"><div class="radar-title">Acil Stok</div><div class="radar-value">🔴 {len(critical_df)}</div><div class="radar-note">{critical_days} gün altı</div></div>
-<div class="radar-card"><div class="radar-title">Sipariş</div><div class="radar-value">🛒 {len(order_df)}</div><div class="radar-note">{money_fmt(order_df['siparis_maliyeti'].sum())}</div></div>
-<div class="radar-card"><div class="radar-title">Ölü Stok</div><div class="radar-value">💀 {len(dead_df)}</div><div class="radar-note">{money_fmt(dead_df['stok_degeri'].sum())}</div></div>
-<div class="radar-card"><div class="radar-title">Sermaye Kilidi</div><div class="radar-value">🔒 {money_fmt(slow_value)}</div><div class="radar-note">Yavaş/ölü stok</div></div>
-<div class="radar-card"><div class="radar-title">En Karlı Grup</div><div class="radar-value">💰 {best_profit_cat}</div><div class="radar-note">Toplam kâr lideri</div></div>
-<div class="radar-card"><div class="radar-title">SKT Riski</div><div class="radar-value">⏳ {len(skt_df)}</div><div class="radar-note">{skt_days} gün içinde</div></div>
-</div>
-"""
+tasks = []
+if not order.empty:
+    row = order.sort_values(["siparis_oncelik", "tahmini_bitis_gunu"]).iloc[0]
+    tasks.append(f"☐ {escape(str(row['urun']))} için sipariş kontrolü yap; tahmini bitiş {num(row['tahmini_bitis_gunu'], 0)} gün.")
+if not dead.empty:
+    tasks.append(f"☐ Ölü stok listesindeki {len(dead)} ürün için kampanya/iade planı çıkar.")
+if not slow.empty:
+    tasks.append(f"☐ Yavaş dönen stoklarda {compact_money(slow['stok_degeri'].sum())} sermayeyi gözden geçir.")
+if not low_margin.empty:
+    tasks.append(f"☐ Marjı düşük {len(low_margin)} üründe fiyat/maliyet kontrolü yap.")
+if not collection.empty:
+    tasks.append(f"☐ Açık tahsilat toplamı {compact_money(collection['acik_tahsilat'].sum())}; vade kontrolü yap.")
+if not skt.empty:
+    tasks.append(f"☐ SKT riski olan {len(skt)} ürünü öne çıkar veya kampanyaya al.")
+if not tasks:
+    tasks = ["☐ Genel tablo dengeli; haftalık satış ve stok kontrolünü sürdür."]
+
+tasks_html = "".join([f'<div class="task-item">{t}</div>' for t in tasks[:6]])
+
+left, right = st.columns([1.25, .75])
+with left:
+    st.markdown(
+        f"""
+        <div class="exec-card">
+          <div class="exec-title">🤖 AYÇA Ticaret Asistanı</div>
+          <div class="exec-sub">{escape(ai)}</div>
+          <div class="exec-list-item">Bu ekran; ciroyu, kârı, stokta kilitli sermayeyi, tahsilat açığını ve sipariş ihtiyacını birlikte yorumlar.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with right:
+    st.markdown(
+        f"""
+        <div class="exec-card">
+          <div class="score-label">İşletme Sağlık Skoru</div>
+          <div class="score-big">{score}</div>
+          {health_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.markdown('<div class="section-title">Bugünün Yönetim Paneli</div>', unsafe_allow_html=True)
+radar_items = [
+    ("Acil Sipariş", len(order), "Ürün"),
+    ("Kritik Stok", len(critical), "Ürün"),
+    ("Ölü Stok", compact_money(dead["stok_degeri"].sum()) if not dead.empty else "₺0", "Sermaye"),
+    ("Yavaş Stok", compact_money(slow["stok_degeri"].sum()) if not slow.empty else "₺0", "Sermaye"),
+    ("SKT Riski", len(skt), "Ürün"),
+    ("Düşük Marj", len(low_margin), "Ürün"),
+]
+radar_html = "<div class='radar-grid'>" + "".join([
+    f"<div class='radar-card'><div class='radar-title'>{escape(str(t))}</div><div class='radar-value'>{escape(str(v))}</div><div class='radar-note'>{escape(str(n))}</div></div>"
+    for t, v, n in radar_items
+]) + "</div>"
 st.markdown(radar_html, unsafe_allow_html=True)
 
-st.markdown('<div class="section-title">Yönetici Görev Listesi</div>', unsafe_allow_html=True)
-tasks = []
-if not critical_df.empty:
-    x = critical_df.sort_values("tahmini_bitis_gunu").iloc[0]
-    tasks.append(f"☐ {x['urun']} için sipariş aç; tahmini bitiş {num_fmt(x['tahmini_bitis_gunu'],0)} gün.")
-if not dead_df.empty:
-    x = dead_df.iloc[0]
-    tasks.append(f"☐ {x['urun']} için kampanya/raf azaltma aksiyonu al; bağlı para {money_fmt(x['stok_degeri'])}.")
-if not cat.empty:
-    tasks.append(f"☐ {best_profit_cat} kategorisine stok ve raf önceliği ver; en yüksek kâr buradan geliyor.")
-if not low_margin_df.empty:
-    x = low_margin_df.iloc[0]
-    tasks.append(f"☐ {x['urun']} düşük marjlı; alış veya satış fiyatını kontrol et.")
-if veresiye_total > 0:
-    tasks.append(f"☐ Veresiye/tahsilat listesini kontrol et; açık tutar {money_fmt(veresiye_total)}.")
-while len(tasks) < 5:
-    tasks.append("☐ Gün sonunda satış-stok dengesini tekrar kontrol et.")
-st.markdown('<div class="card">' + ''.join([f'<div class="task-item">{t}</div>' for t in tasks[:5]]) + '</div>', unsafe_allow_html=True)
+st.markdown('<div class="task-grid"><div class="task-card"><div class="exec-title">✅ Bugün Ne Yapmalıyım?</div>' + tasks_html + '</div><div class="task-card"><div class="exec-title">💡 Kısa Yorum</div><div class="exec-sub">Büyük rakamlar kartlarda artık kısaltılmış gösterilir; detaylı tutarlar tablo ve Excel raporunda tam değer olarak korunur.</div></div></div>', unsafe_allow_html=True)
 
-# Tabs
-st.markdown('<div class="section-title">Detaylı Analiz Merkezleri</div>', unsafe_allow_html=True)
-tabs = st.tabs(["📊 Kategori Gücü", "💰 Kârlılık", "🔒 Sermaye Kilidi", "💀 Ölü Stok", "🛒 Sipariş", "📦 Stok", "⏳ SKT", "💳 Tahsilat", "📥 Rapor"])
+# ============================================================
+# TABS
+# ============================================================
+t_overview, t_cat, t_order, t_dead, t_shelf, t_collect, t_report = st.tabs([
+    "Genel Bakış", "Kategori Kârlılık", "Sipariş", "Ölü/Yavaş Stok", "Raf Verimliliği", "Tahsilat", "Rapor"
+])
 
-with tabs[0]:
-    c1, c2 = st.columns([1,1])
-    with c1:
-        fig = px.bar(cat.sort_values("kar", ascending=True), x="kar", y="kategori", orientation="h", title="Kategori Bazlı Brüt Kâr")
-        st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
-    with c2:
-        fig = px.scatter(cat, x="ciro", y="marj", size="stok_degeri", hover_name="kategori", title="Ciro / Marj / Stok Değeri Haritası")
-        st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
-    st.dataframe(cat.assign(ciro=cat.ciro.round(0), kar=cat.kar.round(0), stok_degeri=cat.stok_degeri.round(0), marj=cat.marj.round(3)).replace([np.inf,-np.inf], np.nan), use_container_width=True)
+with t_overview:
+    st.markdown("#### Ciro ve kâr trendi")
+    daily = period.groupby("tarih").agg(ciro=("ciro", "sum"), kar=("kar", "sum"), acik=("acik_tahsilat", "sum")).reset_index()
+    if not daily.empty:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=daily["tarih"], y=daily["ciro"], mode="lines+markers", name="Ciro"))
+        fig.add_trace(go.Scatter(x=daily["tarih"], y=daily["kar"], mode="lines+markers", name="Brüt Kâr"))
+        st.plotly_chart(apply_theme(fig, 390), use_container_width=True)
+    st.dataframe(period.sort_values("tarih", ascending=False).head(250), use_container_width=True)
 
-with tabs[1]:
-    st.subheader("En kârlı ürün grupları ve düşük marj uyarıları")
-    top_products = p.sort_values("toplam_kar", ascending=False).head(30)
-    fig = px.bar(top_products.sort_values("toplam_kar", ascending=True), x="toplam_kar", y="urun", orientation="h", title="En Çok Kâr Getiren Ürünler")
-    st.plotly_chart(plot_theme(fig, 520), use_container_width=True)
-    st.markdown("#### Düşük marjlı ama satış yapan ürünler")
-    st.dataframe(low_margin_df[["urun","kategori","marka","toplam_ciro","toplam_kar","kar_marji","stok","stok_degeri"]].head(100), use_container_width=True)
+with t_cat:
+    st.markdown("#### Hangi ürün grubu daha kârlı?")
+    view = category.sort_values("kar", ascending=False).copy()
+    st.dataframe(view, use_container_width=True)
+    if not view.empty:
+        st.plotly_chart(apply_theme(px.bar(view.head(20), x="Kategori", y="kar", title="Kategori Bazlı Brüt Kâr"), 390), use_container_width=True)
+        st.plotly_chart(apply_theme(px.bar(view.head(20), x="Kategori", y="raf_verimlilik", title="Kategori Raf Verimliliği"), 390), use_container_width=True)
 
-with tabs[2]:
-    st.subheader("İçerideki mal değeri ve sermaye kilidi")
-    capital = p.groupby("sermaye_sinifi")["stok_degeri"].sum().reset_index().sort_values("stok_degeri", ascending=False)
-    fig = px.pie(capital, names="sermaye_sinifi", values="stok_degeri", title="Stok Sermayesi Dağılımı")
-    st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
-    st.dataframe(p.sort_values("stok_degeri", ascending=False)[["urun","kategori","marka","stok","stok_degeri","son90","tahmini_bitis_gunu","sermaye_sinifi","stok_devir"]].head(150).replace([np.inf,-np.inf], np.nan), use_container_width=True)
+with t_order:
+    st.markdown("#### Sipariş asistanı")
+    st.info(f"Toplam önerilen sipariş maliyeti: {money(order['siparis_maliyeti'].sum()) if not order.empty else '₺0'}")
+    columns = ["urun", "kategori", "stok", "son90", "gunluk_tuketim", "tahmini_bitis_gunu", "siparis_adedi", "siparis_maliyeti", "siparis_oncelik", "tedarikci"]
+    st.dataframe(order.sort_values("tahmini_bitis_gunu")[columns].replace([np.inf, -np.inf], np.nan), use_container_width=True)
+    if not order.empty:
+        st.plotly_chart(apply_theme(px.bar(order.sort_values("siparis_maliyeti", ascending=False).head(20), x="urun", y="siparis_maliyeti", color="siparis_oncelik", title="Sipariş Maliyeti Öncelik Listesi"), 420), use_container_width=True)
 
-with tabs[3]:
-    st.subheader("Ölü / yavaş stok merkezi")
-    st.warning(f"Ölü/yavaş stoklarda toplam {money_fmt(dead_df['stok_degeri'].sum())} değerinde sermaye görünüyor.")
-    st.dataframe(dead_df[["urun","kategori","marka","stok","stok_degeri","son90","son_satis_kac_gun","raf","raf_cm","kampanya_onerisi"]].head(200), use_container_width=True)
+with t_dead:
+    st.markdown("#### Ölü stoklar ve yavaş dönen stoklar")
+    st.warning(f"Ölü stoklarda toplam {money(dead['stok_degeri'].sum()) if not dead.empty else '₺0'} değerinde sermaye görünüyor.")
+    dead_cols = ["urun", "kategori", "stok", "stok_degeri", "son90", "son_satis_kac_gun", "iade", "aksiyon"]
+    slow_cols = ["urun", "kategori", "stok", "stok_degeri", "stok_devir", "son90", "aksiyon"]
+    st.markdown("##### Ölü stoklar")
+    st.dataframe(dead.sort_values("stok_degeri", ascending=False)[dead_cols], use_container_width=True)
+    st.markdown("##### Yavaş dönen stoklar")
+    st.dataframe(slow.sort_values("stok_degeri", ascending=False)[slow_cols], use_container_width=True)
 
-with tabs[4]:
-    st.subheader("Sipariş asistanı")
-    st.info(f"Toplam önerilen sipariş maliyeti: {money_fmt(order_df['siparis_maliyeti'].sum())}")
-    st.dataframe(order_df[["urun","kategori","marka","stok","son90","gunluk_satis","tahmini_bitis_gunu","siparis_adedi","siparis_maliyeti","tedarikci"]].head(200).replace([np.inf,-np.inf], np.nan), use_container_width=True)
+with t_shelf:
+    st.markdown("#### Raf verimliliği = kâr / raf metre")
+    shelf = p.sort_values("raf_verimlilik", ascending=False)
+    st.dataframe(shelf[["urun", "kategori", "raf_kodu", "raf_metre", "toplam_kar", "raf_verimlilik", "stok_degeri", "stok_devir"]], use_container_width=True)
+    if not category.empty:
+        st.plotly_chart(apply_theme(px.bar(category.sort_values("raf_verimlilik", ascending=False), x="Kategori", y="raf_verimlilik", title="Kategori Raf Verimliliği"), 390), use_container_width=True)
 
-with tabs[5]:
-    st.subheader("Stok bitiş tahmini")
-    stock_view = p.sort_values("tahmini_bitis_gunu")[["urun","kategori","marka","stok","son90","gunluk_satis","tahmini_bitis_gunu","stok_degeri","hiz_sinifi"]]
-    st.dataframe(stock_view.replace([np.inf,-np.inf], np.nan).head(250), use_container_width=True)
+with t_collect:
+    st.markdown("#### Tahsilat açığı / veresiye riski")
+    st.dataframe(collection[["tarih", "fis", "urun", "kategori", "odeme", "tahsil_durum", "vade", "ciro", "acik_tahsilat"]], use_container_width=True)
+    by_day = collection.groupby("vade").agg(acik=("acik_tahsilat", "sum"), fis=("fis", "nunique")).reset_index() if not collection.empty else pd.DataFrame()
+    if not by_day.empty:
+        st.plotly_chart(apply_theme(px.bar(by_day, x="vade", y="acik", title="Vadeye Göre Açık Tahsilat"), 360), use_container_width=True)
 
-with tabs[6]:
-    st.subheader("SKT / son kullanma riski")
-    st.dataframe(skt_df[["urun","kategori","marka","stok","stok_degeri","skt","skt_kalan_gun","son90","kampanya_onerisi"]].head(200), use_container_width=True)
+with t_report:
+    st.markdown("#### Excel raporu indir")
+    data = excel_report(df, p, category, order, dead, slow, collection)
+    st.download_button(
+        "📥 AYÇA Business Market Raporu İndir",
+        data=data,
+        file_name="ayca_business_market_rapor.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True,
+    )
+    st.caption("Rapor içinde Ozet, Ham Veri, Ürün Analizi, Kategori Kârlılık, Sipariş, Ölü Stok, Yavaş Stok ve Tahsilat sayfaları bulunur.")
 
-with tabs[7]:
-    st.subheader("Tahsilat ve ödeme tipi analizi")
-    fig = px.bar(cash_df, x="odeme", y="ciro", title="Ödeme Tipine Göre Ciro")
-    st.plotly_chart(plot_theme(fig, 380), use_container_width=True)
-    st.dataframe(cash_df, use_container_width=True)
-
-with tabs[8]:
-    st.subheader("Excel raporu indir")
-    st.download_button("📥 AYÇA Business analiz raporunu indir", data=excel_report(df, p, cat, order_df, dead_df, low_margin_df, cash_df), file_name="ayca_business_market_analiz_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-    st.caption("Rapor; ham veri, ürün analizi, kategori analizi, sipariş, ölü stok, düşük marj ve tahsilat sayfalarını içerir.")
+st.divider()
+st.caption("AYÇA Business Market V1.1 · Veriler kalıcı olarak saklanmaz. Excel dosyası anlık analiz edilir.")
