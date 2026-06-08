@@ -1,104 +1,15 @@
-ChatGPT
+# ============================================================
+# AYÇA Business Market V1.0 Executive
+# Market / bakkal / perakende işletme karar destek paneli
+# ------------------------------------------------------------
+# Beklenen Excel sayfası: AYCA_BUSINESS_DATA
+# Örnek veri: ayca_business_market_ornek_veri_v1.xlsx
+# Çalıştırma:
+#   pip install streamlit pandas numpy openpyxl plotly
+#   streamlit run app.py
+# ============================================================
 
-
-Ayça business marketin son çalışmanın txt ve exceli paylaş benimle
-
-Son çalışmada oluşturduğumuz AYÇA Business dosyalarını buldum.
-
-
-ayca_business_market_v1_app.py.txt
-Belge
-
-ayca_business_market_buyuk_demo_veri.xlsx
-Hesap Tablosu
-TXT Dosyası
-ayca_business_market_v1_app.py.txt
-AYÇA Business Market Executive sürümü. İçeriklerinde:
-
-İşletme sağlık skoru
-
-En kârlı ürün grubu analizi
-
-Ölü stok sermaye kilidi
-
-Yavaş dönen stoklar
-
-Sipariş asistanı
-
-Tahsilat/veresiye açığı
-
-Raf verimliliği
-
-İçerideki toplam mal değeri
-
-AI Ticaret Asistanı
-
-Excel rapor çıktısı
-
-bulunuyor. 
-
-
-Excel Dosyası
-ayca_business_market_buyuk_demo_veri.xlsx
-
-Özellikleri:
-
-270 gün veri
-
-12.805 satış satırı
-
-1.500 SKU
-
-Ortalama günlük ciro ≈ 109.465 TL
-
-Satış + stok + kârlılık + tahsilat + raf verimliliği analizleri için uygun demo veri seti 
-
-
-Bu arada son konuştuğumuz noktada sistemi daha da büyütmüştük:
-
-✅ En kârlı ürün grubu
-✅ Ölü stok sermaye kilidi
-✅ Yavaş dönen stoklar
-✅ Tahsilat açığı
-✅ Toplam stok değeri
-✅ Sipariş önceliklendirme
-✅ Raf verimliliği
-✅ Yönetici özeti (AI yorumları)
-
-Bir sonraki aşama olarak konuştuğumuz AYÇA Business V2.0'da şunları ekleyebiliriz:
-
-ABC ürün analizi
-
-Pareto (%80 ciroyu getiren ürünler)
-
-Saatlik satış analizi
-
-Kampanya öneri motoru
-
-Kasiyer performansı
-
-Şube karşılaştırması
-
-Nakit akış tahmini
-
-Otomatik satın alma bütçesi
-
-"Bugün ne yapmalıyım?" ekranı
-
-Bence market ürünü burada eczane ürününden bile daha büyük bir ticari potansiyele sahip.
-
-
-============================================================
-AYÇA Business Market V1.0 Executive
-Market / bakkal / perakende işletme karar destek paneli
-------------------------------------------------------------
-Beklenen Excel sayfası: AYCA_BUSINESS_DATA
-Örnek veri: ayca_business_market_ornek_veri_v1.xlsx
-Çalıştırma:
-pip install streamlit pandas numpy openpyxl plotly
-streamlit run app.py
-============================================================
-from future import annotations
+from __future__ import annotations
 
 import re
 from datetime import datetime
@@ -112,242 +23,261 @@ import plotly.graph_objects as go
 import streamlit as st
 
 st.set_page_config(
-page_title="AYÇA Business Market",
-page_icon="🛒",
-layout="wide",
-initial_sidebar_state="expanded",
+    page_title="AYÇA Business Market",
+    page_icon="🛒",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-============================================================
-CSS
-============================================================
+# ============================================================
+# CSS
+# ============================================================
 st.markdown("""
-
+<style>
+:root{--bg:#F8FAFC;--panel:#FFFFFF;--border:#E2E8F0;--text:#0F172A;--muted:#64748B;--blue:#2563EB;--green:#10B981;--red:#EF4444;--orange:#F59E0B;--purple:#8B5CF6;}
+html,body,[data-testid="stAppViewContainer"]{background:var(--bg);color:var(--text);} [data-testid="stHeader"]{background:rgba(248,250,252,.88);backdrop-filter:blur(10px);} [data-testid="stSidebar"]{background:linear-gradient(180deg,#FFFFFF 0%,#F1F5F9 100%);border-right:1px solid var(--border);} .block-container{padding-top:1.2rem;max-width:1580px;}
+.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}.title h1{font-size:32px;margin:0;font-weight:950;letter-spacing:-.7px}.title p{margin:5px 0 0;color:var(--muted);font-size:14px}.pill{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 16px;box-shadow:0 8px 24px rgba(15,23,42,.05);font-weight:900;white-space:nowrap}.metric-card{min-height:132px;background:linear-gradient(180deg,#fff 0%,#F8FBFF 100%);border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(15,23,42,.06);position:relative;overflow:hidden}.metric-label{color:var(--muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;margin-bottom:8px}.metric-value{font-size:29px;font-weight:950;letter-spacing:-.5px;margin-bottom:8px}.metric-sub{font-size:13px;color:var(--muted)}.up{color:var(--green);font-weight:900}.down{color:var(--red);font-weight:900}.section-title{font-size:22px;font-weight:950;margin:22px 0 12px;letter-spacing:-.4px}.card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(15,23,42,.05)}.ai-card{background:linear-gradient(135deg,#fff 0%,#EFF6FF 100%);border:1px solid #BFDBFE;border-radius:22px;padding:20px;box-shadow:0 12px 30px rgba(37,99,235,.08);margin:14px 0}.ai-title{color:var(--blue);font-size:18px;font-weight:950;margin-bottom:8px}.ai-text{font-size:14px;line-height:1.55}.grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.radar{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.radar-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:15px;box-shadow:0 10px 26px rgba(15,23,42,.05);min-height:112px}.radar-title{color:var(--muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;margin-bottom:9px}.radar-value{font-size:24px;font-weight:950;margin-bottom:5px}.radar-note{color:var(--muted);font-size:13px;line-height:1.35}.task-item{border-bottom:1px solid var(--border);padding:10px 0;font-size:14px;font-weight:760;line-height:1.45}.task-item:last-child{border-bottom:0}.score-big{font-size:54px;font-weight:950;letter-spacing:-2px;color:var(--blue);line-height:1;margin:4px 0 8px}.bar-bg{width:100%;height:10px;background:#E2E8F0;border-radius:999px;overflow:hidden}.bar-fill{height:10px;background:linear-gradient(90deg,#2563EB,#10B981);border-radius:999px}.small{color:var(--muted);font-size:13px}.stButton>button,.stDownloadButton>button{border-radius:13px;border:1px solid #BFDBFE;background:#fff;color:#2563EB;font-weight:900}.stTabs [data-baseweb="tab"]{background:#fff;border:1px solid var(--border);border-radius:13px;padding:10px 16px;font-weight:800}.stTabs [aria-selected="true"]{background:#DBEAFE;color:#2563EB;border-color:#BFDBFE}@media(max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}.radar{grid-template-columns:1fr 1fr}}
+</style>
 """, unsafe_allow_html=True)
 
-============================================================
-Helpers
-============================================================
+# ============================================================
+# Helpers
+# ============================================================
 def normalize_col_name(name: str) -> str:
-tr = str.maketrans("çğıöşüİı", "cgiosuii")
-name = str(name).strip().lower().translate(tr)
-name = re.sub(r"[^a-z0-9]+", "", name)
-return re.sub(r"+", "", name).strip("")
+    tr = str.maketrans("çğıöşüİı", "cgiosuii")
+    name = str(name).strip().lower().translate(tr)
+    name = re.sub(r"[^a-z0-9]+", "_", name)
+    return re.sub(r"_+", "_", name).strip("_")
+
 
 def find_col(columns, candidates) -> Optional[str]:
-normalized = {c: normalize_col_name(c) for c in columns}
-for cand in candidates:
-cn = normalize_col_name(cand)
-for original, norm in normalized.items():
-if cn == norm:
-return original
-for cand in candidates:
-cn = normalize_col_name(cand)
-for original, norm in normalized.items():
-if cn in norm:
-return original
-return None
+    normalized = {c: normalize_col_name(c) for c in columns}
+    for cand in candidates:
+        cn = normalize_col_name(cand)
+        for original, norm in normalized.items():
+            if cn == norm:
+                return original
+    for cand in candidates:
+        cn = normalize_col_name(cand)
+        for original, norm in normalized.items():
+            if cn in norm:
+                return original
+    return None
+
 
 def money_fmt(x) -> str:
-try:
-return f"₺{float(x):,.0f}".replace(",", ".")
-except Exception:
-return "₺0"
+    try:
+        return f"₺{float(x):,.0f}".replace(",", ".")
+    except Exception:
+        return "₺0"
+
 
 def num_fmt(x, d=1) -> str:
-try:
-if pd.isna(x) or np.isinf(float(x)):
-return "0"
-return f"{float(x):,.{d}f}".replace(",", "X").replace(".", ",").replace("X", ".")
-except Exception:
-return "0"
+    try:
+        if pd.isna(x) or np.isinf(float(x)):
+            return "0"
+        return f"{float(x):,.{d}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except Exception:
+        return "0"
+
 
 def pct_fmt(x) -> str:
-return "%" + num_fmt(float(x) * 100 if pd.notna(x) else 0, 1)
+    return "%" + num_fmt(float(x) * 100 if pd.notna(x) else 0, 1)
+
 
 def trend(current, previous):
-try:
-if previous == 0:
-return "▲ yeni", "up"
-r = (current - previous) / previous
-return ("▲ " + pct_fmt(r), "up") if r >= 0 else ("▼ " + pct_fmt(abs(r)), "down")
-except Exception:
-return "", "up"
+    try:
+        if previous == 0:
+            return "▲ yeni", "up"
+        r = (current - previous) / previous
+        return ("▲ " + pct_fmt(r), "up") if r >= 0 else ("▼ " + pct_fmt(abs(r)), "down")
+    except Exception:
+        return "", "up"
+
 
 def metric_card(label, value, sub="", trend_text="", trend_class="up"):
-t = f" {trend_text}" if trend_text else ""
-st.markdown(f"""
-{label}{value}{sub}{t}
-""", unsafe_allow_html=True)
+    t = f" <span class='{trend_class}'>{trend_text}</span>" if trend_text else ""
+    st.markdown(f"""
+    <div class="metric-card"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-sub">{sub}{t}</div></div>
+    """, unsafe_allow_html=True)
+
 
 def plot_theme(fig, height=360):
-fig.update_layout(height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#FFFFFF", font=dict(color="#0F172A"), margin=dict(l=10,r=10,t=48,b=10), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"))
-fig.update_xaxes(showgrid=False, color="#64748B")
-fig.update_yaxes(gridcolor="#E2E8F0", color="#64748B")
-return fig
+    fig.update_layout(height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#FFFFFF", font=dict(color="#0F172A"), margin=dict(l=10,r=10,t=48,b=10), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"))
+    fig.update_xaxes(showgrid=False, color="#64748B")
+    fig.update_yaxes(gridcolor="#E2E8F0", color="#64748B")
+    return fig
+
 
 def read_excel_smart(uploaded_file):
-xls = pd.ExcelFile(uploaded_file)
-preferred = None
-for s in xls.sheet_names:
-if normalize_col_name(s) == "ayca_business_data":
-preferred = s; break
-if preferred is None:
-for s in xls.sheet_names:
-if any(k in normalize_col_name(s) for k in ["data", "veri", "satis", "market"]):
-preferred = s; break
-if preferred is None:
-preferred = xls.sheet_names[0]
-return pd.read_excel(uploaded_file, sheet_name=preferred), preferred
+    xls = pd.ExcelFile(uploaded_file)
+    preferred = None
+    for s in xls.sheet_names:
+        if normalize_col_name(s) == "ayca_business_data":
+            preferred = s; break
+    if preferred is None:
+        for s in xls.sheet_names:
+            if any(k in normalize_col_name(s) for k in ["data", "veri", "satis", "market"]):
+                preferred = s; break
+    if preferred is None:
+        preferred = xls.sheet_names[0]
+    return pd.read_excel(uploaded_file, sheet_name=preferred), preferred
+
 
 def standardize(raw: pd.DataFrame) -> pd.DataFrame:
-cols = list(raw.columns)
-m = {
-"tarih": find_col(cols, ["Tarih", "Satış Tarihi"]),
-"fis": find_col(cols, ["Fiş No", "Fis No", "Belge No"]),
-"barkod": find_col(cols, ["Barkod", "Barcode"]),
-"urun": find_col(cols, ["Ürün Adı", "Urun Adi", "Mal Adı"]),
-"marka": find_col(cols, ["Marka", "Brand"]),
-"kategori": find_col(cols, ["Kategori", "Category"]),
-"alt": find_col(cols, ["Alt Kategori", "Alt Grup"]),
-"adet": find_col(cols, ["Adet", "Miktar", "Satış Adedi"]),
-"alis": find_col(cols, ["Alış Birim TL", "Alis Birim TL", "Alış Fiyatı"]),
-"satis": find_col(cols, ["Satış Birim TL", "Satis Birim TL", "Satış Fiyatı"]),
-"ciro": find_col(cols, ["Ciro TL", "Satış Tutarı", "Ciro"]),
-"maliyet": find_col(cols, ["Maliyet TL", "Maliyet"]),
-"kar": find_col(cols, ["Brüt Kar TL", "Brut Kar TL", "Kar TL"]),
-"odeme": find_col(cols, ["Ödeme Tipi", "Odeme Tipi", "Tahsilat Tipi"]),
-"veresiye": find_col(cols, ["Veresiye Tutar TL", "Tahsilat Açığı", "Tahsilat Acigi"]),
-"stok": find_col(cols, ["Mevcut Stok", "Stok", "Kalan Stok"]),
-"stok_degeri": find_col(cols, ["Stok Değeri TL", "Stok Degeri TL"]),
-"son90": find_col(cols, ["Son 90 Gün Satış", "Son 90 Gun Satis", "Son 90"]),
-"bitis": find_col(cols, ["Tahmini Bitiş Günü", "Tahmini Bitis Gunu"]),
-"skt": find_col(cols, ["SKT", "Miad", "Son Kullanma Tarihi"]),
-"tedarikci": find_col(cols, ["Tedarikçi", "Tedarikci"]),
-"raf": find_col(cols, ["Raf Kodu", "Raf Lokasyonu", "Raf"]),
-"raf_cm": find_col(cols, ["Raf Payı CM", "Raf Payi CM", "Raf Cm"]),
-"son_satis": find_col(cols, ["Son Satış Tarihi", "Son Satis Tarihi"]),
-}
-required = ["tarih", "urun", "kategori", "adet", "ciro", "kar", "stok", "son90"]
-missing = [x for x in required if m.get(x) is None]
-if missing:
-raise ValueError("Eksik zorunlu kolonlar: " + ", ".join(missing))
+    cols = list(raw.columns)
+    m = {
+        "tarih": find_col(cols, ["Tarih", "Satış Tarihi"]),
+        "fis": find_col(cols, ["Fiş No", "Fis No", "Belge No"]),
+        "barkod": find_col(cols, ["Barkod", "Barcode"]),
+        "urun": find_col(cols, ["Ürün Adı", "Urun Adi", "Mal Adı"]),
+        "marka": find_col(cols, ["Marka", "Brand"]),
+        "kategori": find_col(cols, ["Kategori", "Category"]),
+        "alt": find_col(cols, ["Alt Kategori", "Alt Grup"]),
+        "adet": find_col(cols, ["Adet", "Miktar", "Satış Adedi"]),
+        "alis": find_col(cols, ["Alış Birim TL", "Alis Birim TL", "Alış Fiyatı"]),
+        "satis": find_col(cols, ["Satış Birim TL", "Satis Birim TL", "Satış Fiyatı"]),
+        "ciro": find_col(cols, ["Ciro TL", "Satış Tutarı", "Ciro"]),
+        "maliyet": find_col(cols, ["Maliyet TL", "Maliyet"]),
+        "kar": find_col(cols, ["Brüt Kar TL", "Brut Kar TL", "Kar TL"]),
+        "odeme": find_col(cols, ["Ödeme Tipi", "Odeme Tipi", "Tahsilat Tipi"]),
+        "veresiye": find_col(cols, ["Veresiye Tutar TL", "Tahsilat Açığı", "Tahsilat Acigi"]),
+        "stok": find_col(cols, ["Mevcut Stok", "Stok", "Kalan Stok"]),
+        "stok_degeri": find_col(cols, ["Stok Değeri TL", "Stok Degeri TL"]),
+        "son90": find_col(cols, ["Son 90 Gün Satış", "Son 90 Gun Satis", "Son 90"]),
+        "bitis": find_col(cols, ["Tahmini Bitiş Günü", "Tahmini Bitis Gunu"]),
+        "skt": find_col(cols, ["SKT", "Miad", "Son Kullanma Tarihi"]),
+        "tedarikci": find_col(cols, ["Tedarikçi", "Tedarikci"]),
+        "raf": find_col(cols, ["Raf Kodu", "Raf Lokasyonu", "Raf"]),
+        "raf_cm": find_col(cols, ["Raf Payı CM", "Raf Payi CM", "Raf Cm"]),
+        "son_satis": find_col(cols, ["Son Satış Tarihi", "Son Satis Tarihi"]),
+    }
+    required = ["tarih", "urun", "kategori", "adet", "ciro", "kar", "stok", "son90"]
+    missing = [x for x in required if m.get(x) is None]
+    if missing:
+        raise ValueError("Eksik zorunlu kolonlar: " + ", ".join(missing))
 
-df = pd.DataFrame()
-df["tarih"] = pd.to_datetime(raw[m["tarih"]], errors="coerce", dayfirst=True)
-df["fis"] = raw[m["fis"]].astype(str) if m["fis"] else ""
-df["barkod"] = raw[m["barkod"]].astype(str) if m["barkod"] else ""
-df["urun"] = raw[m["urun"]].astype(str)
-df["marka"] = raw[m["marka"]].astype(str) if m["marka"] else "Bilinmiyor"
-df["kategori"] = raw[m["kategori"]].astype(str)
-df["alt_kategori"] = raw[m["alt"]].astype(str) if m["alt"] else "Genel"
-df["adet"] = pd.to_numeric(raw[m["adet"]], errors="coerce").fillna(0)
-df["alis_birim"] = pd.to_numeric(raw[m["alis"]], errors="coerce").fillna(0) if m["alis"] else 0
-df["satis_birim"] = pd.to_numeric(raw[m["satis"]], errors="coerce").fillna(0) if m["satis"] else 0
-df["ciro"] = pd.to_numeric(raw[m["ciro"]], errors="coerce").fillna(0)
-df["maliyet"] = pd.to_numeric(raw[m["maliyet"]], errors="coerce").fillna(0) if m["maliyet"] else df["adet"] * df["alis_birim"]
-df["brut_kar"] = pd.to_numeric(raw[m["kar"]], errors="coerce").fillna(0)
-df["odeme"] = raw[m["odeme"]].astype(str) if m["odeme"] else "Bilinmiyor"
-df["veresiye"] = pd.to_numeric(raw[m["veresiye"]], errors="coerce").fillna(0) if m["veresiye"] else np.where(df["odeme"].str.contains("veresiye", case=False, na=False), df["ciro"], 0)
-df["stok"] = pd.to_numeric(raw[m["stok"]], errors="coerce").fillna(0)
-df["stok_degeri_raw"] = pd.to_numeric(raw[m["stok_degeri"]], errors="coerce").fillna(0) if m["stok_degeri"] else 0
-df["son90"] = pd.to_numeric(raw[m["son90"]], errors="coerce").fillna(0)
-df["bitis_raw"] = pd.to_numeric(raw[m["bitis"]], errors="coerce").fillna(np.nan) if m["bitis"] else np.nan
-df["skt"] = pd.to_datetime(raw[m["skt"]], errors="coerce", dayfirst=True) if m["skt"] else pd.NaT
-df["tedarikci"] = raw[m["tedarikci"]].astype(str) if m["tedarikci"] else "Bilinmiyor"
-df["raf"] = raw[m["raf"]].astype(str) if m["raf"] else "Bilinmiyor"
-df["raf_cm"] = pd.to_numeric(raw[m["raf_cm"]], errors="coerce").fillna(20) if m["raf_cm"] else 20
-df["son_satis"] = pd.to_datetime(raw[m["son_satis"]], errors="coerce", dayfirst=True) if m["son_satis"] else df["tarih"]
-df = df.dropna(subset=["tarih"])
-return df
+    df = pd.DataFrame()
+    df["tarih"] = pd.to_datetime(raw[m["tarih"]], errors="coerce", dayfirst=True)
+    df["fis"] = raw[m["fis"]].astype(str) if m["fis"] else ""
+    df["barkod"] = raw[m["barkod"]].astype(str) if m["barkod"] else ""
+    df["urun"] = raw[m["urun"]].astype(str)
+    df["marka"] = raw[m["marka"]].astype(str) if m["marka"] else "Bilinmiyor"
+    df["kategori"] = raw[m["kategori"]].astype(str)
+    df["alt_kategori"] = raw[m["alt"]].astype(str) if m["alt"] else "Genel"
+    df["adet"] = pd.to_numeric(raw[m["adet"]], errors="coerce").fillna(0)
+    df["alis_birim"] = pd.to_numeric(raw[m["alis"]], errors="coerce").fillna(0) if m["alis"] else 0
+    df["satis_birim"] = pd.to_numeric(raw[m["satis"]], errors="coerce").fillna(0) if m["satis"] else 0
+    df["ciro"] = pd.to_numeric(raw[m["ciro"]], errors="coerce").fillna(0)
+    df["maliyet"] = pd.to_numeric(raw[m["maliyet"]], errors="coerce").fillna(0) if m["maliyet"] else df["adet"] * df["alis_birim"]
+    df["brut_kar"] = pd.to_numeric(raw[m["kar"]], errors="coerce").fillna(0)
+    df["odeme"] = raw[m["odeme"]].astype(str) if m["odeme"] else "Bilinmiyor"
+    df["veresiye"] = pd.to_numeric(raw[m["veresiye"]], errors="coerce").fillna(0) if m["veresiye"] else np.where(df["odeme"].str.contains("veresiye", case=False, na=False), df["ciro"], 0)
+    df["stok"] = pd.to_numeric(raw[m["stok"]], errors="coerce").fillna(0)
+    df["stok_degeri_raw"] = pd.to_numeric(raw[m["stok_degeri"]], errors="coerce").fillna(0) if m["stok_degeri"] else 0
+    df["son90"] = pd.to_numeric(raw[m["son90"]], errors="coerce").fillna(0)
+    df["bitis_raw"] = pd.to_numeric(raw[m["bitis"]], errors="coerce").fillna(np.nan) if m["bitis"] else np.nan
+    df["skt"] = pd.to_datetime(raw[m["skt"]], errors="coerce", dayfirst=True) if m["skt"] else pd.NaT
+    df["tedarikci"] = raw[m["tedarikci"]].astype(str) if m["tedarikci"] else "Bilinmiyor"
+    df["raf"] = raw[m["raf"]].astype(str) if m["raf"] else "Bilinmiyor"
+    df["raf_cm"] = pd.to_numeric(raw[m["raf_cm"]], errors="coerce").fillna(20) if m["raf_cm"] else 20
+    df["son_satis"] = pd.to_datetime(raw[m["son_satis"]], errors="coerce", dayfirst=True) if m["son_satis"] else df["tarih"]
+    df = df.dropna(subset=["tarih"])
+    return df
+
+
 def product_table(df: pd.DataFrame, today: pd.Timestamp) -> pd.DataFrame:
-d = df.sort_values("tarih")
-p = d.groupby(["barkod", "urun"], dropna=False).agg(
-marka=("marka", "last"), kategori=("kategori", "last"), alt_kategori=("alt_kategori", "last"),
-toplam_adet=("adet", "sum"), toplam_ciro=("ciro", "sum"), toplam_maliyet=("maliyet", "sum"), toplam_kar=("brut_kar", "sum"),
-ort_alis=("alis_birim", "mean"), ort_satis=("satis_birim", "mean"), stok=("stok", "last"), stok_degeri_raw=("stok_degeri_raw", "last"),
-son90=("son90", "last"), bitis_raw=("bitis_raw", "last"), skt=("skt", "last"), tedarikci=("tedarikci", "last"), raf=("raf", "last"), raf_cm=("raf_cm", "last"), son_satis=("son_satis", "max"),
-islem=("fis", pd.Series.nunique)
-).reset_index()
-p["kar_marji"] = np.where(p["toplam_ciro"] > 0, p["toplam_kar"] / p["toplam_ciro"], 0)
-p["gunluk_satis"] = p["son90"] / 90
-p["tahmini_bitis_gunu"] = np.where(p["gunluk_satis"] > 0, p["stok"] / p["gunluk_satis"], np.inf)
-p["stok_degeri"] = np.where(p["stok_degeri_raw"] > 0, p["stok_degeri_raw"], p["stok"] * p["ort_alis"])
-p["stok_devir"] = np.where(p["stok_degeri"] > 0, p["toplam_ciro"] / p["stok_degeri"], np.inf)
-p["raf_verim_ciro"] = np.where(p["raf_cm"] > 0, p["toplam_ciro"] / p["raf_cm"], 0)
-p["raf_verim_kar"] = np.where(p["raf_cm"] > 0, p["toplam_kar"] / p["raf_cm"], 0)
-p["skt_kalan_gun"] = (p["skt"] - today).dt.days
-p["son_satis_kac_gun"] = (today - p["son_satis"]).dt.days
-return p
+    d = df.sort_values("tarih")
+    p = d.groupby(["barkod", "urun"], dropna=False).agg(
+        marka=("marka", "last"), kategori=("kategori", "last"), alt_kategori=("alt_kategori", "last"),
+        toplam_adet=("adet", "sum"), toplam_ciro=("ciro", "sum"), toplam_maliyet=("maliyet", "sum"), toplam_kar=("brut_kar", "sum"),
+        ort_alis=("alis_birim", "mean"), ort_satis=("satis_birim", "mean"), stok=("stok", "last"), stok_degeri_raw=("stok_degeri_raw", "last"),
+        son90=("son90", "last"), bitis_raw=("bitis_raw", "last"), skt=("skt", "last"), tedarikci=("tedarikci", "last"), raf=("raf", "last"), raf_cm=("raf_cm", "last"), son_satis=("son_satis", "max"),
+        islem=("fis", pd.Series.nunique)
+    ).reset_index()
+    p["kar_marji"] = np.where(p["toplam_ciro"] > 0, p["toplam_kar"] / p["toplam_ciro"], 0)
+    p["gunluk_satis"] = p["son90"] / 90
+    p["tahmini_bitis_gunu"] = np.where(p["gunluk_satis"] > 0, p["stok"] / p["gunluk_satis"], np.inf)
+    p["stok_degeri"] = np.where(p["stok_degeri_raw"] > 0, p["stok_degeri_raw"], p["stok"] * p["ort_alis"])
+    p["stok_devir"] = np.where(p["stok_degeri"] > 0, p["toplam_ciro"] / p["stok_degeri"], np.inf)
+    p["raf_verim_ciro"] = np.where(p["raf_cm"] > 0, p["toplam_ciro"] / p["raf_cm"], 0)
+    p["raf_verim_kar"] = np.where(p["raf_cm"] > 0, p["toplam_kar"] / p["raf_cm"], 0)
+    p["skt_kalan_gun"] = (p["skt"] - today).dt.days
+    p["son_satis_kac_gun"] = (today - p["son_satis"]).dt.days
+    return p
+
 
 def classify(p: pd.DataFrame, critical_days, warning_days, dead_days):
-q = p.copy()
-q["hiz_sinifi"] = np.select(
-[q["son90"] <= 0, q["tahmini_bitis_gunu"] <= critical_days, q["tahmini_bitis_gunu"] <= warning_days, q["tahmini_bitis_gunu"] > 90],
-["Hareketsiz", "Acil", "Bu Hafta", "Yavaş"], default="Normal")
-q["olu_stok_mu"] = (q["stok"] > 0) & ((q["son90"] <= 0) | (q["son_satis_kac_gun"] >= dead_days))
-q["sermaye_sinifi"] = np.select([q["olu_stok_mu"], q["tahmini_bitis_gunu"] > 90, q["tahmini_bitis_gunu"] <= warning_days], ["Ölü/Yavaş", "Yavaş Dönen", "Hızlı Dönen"], default="Normal")
-q["siparis_adedi"] = np.ceil((q["gunluk_satis"] * warning_days * 1.7) - q["stok"]).clip(lower=0)
-q["siparis_maliyeti"] = q["siparis_adedi"] * q["ort_alis"]
-q["kampanya_onerisi"] = np.select(
-[q["olu_stok_mu"], (q["son_satis_kac_gun"] > 60) & (q["stok_degeri"] > 5000), q["kar_marji"] < 0.10],
-["İndirim/Kampanya", "Raf azalt + kampanya", "Fiyat/maliyet kontrol"], default="Takip")
-return q
+    q = p.copy()
+    q["hiz_sinifi"] = np.select(
+        [q["son90"] <= 0, q["tahmini_bitis_gunu"] <= critical_days, q["tahmini_bitis_gunu"] <= warning_days, q["tahmini_bitis_gunu"] > 90],
+        ["Hareketsiz", "Acil", "Bu Hafta", "Yavaş"], default="Normal")
+    q["olu_stok_mu"] = (q["stok"] > 0) & ((q["son90"] <= 0) | (q["son_satis_kac_gun"] >= dead_days))
+    q["sermaye_sinifi"] = np.select([q["olu_stok_mu"], q["tahmini_bitis_gunu"] > 90, q["tahmini_bitis_gunu"] <= warning_days], ["Ölü/Yavaş", "Yavaş Dönen", "Hızlı Dönen"], default="Normal")
+    q["siparis_adedi"] = np.ceil((q["gunluk_satis"] * warning_days * 1.7) - q["stok"]).clip(lower=0)
+    q["siparis_maliyeti"] = q["siparis_adedi"] * q["ort_alis"]
+    q["kampanya_onerisi"] = np.select(
+        [q["olu_stok_mu"], (q["son_satis_kac_gun"] > 60) & (q["stok_degeri"] > 5000), q["kar_marji"] < 0.10],
+        ["İndirim/Kampanya", "Raf azalt + kampanya", "Fiyat/maliyet kontrol"], default="Takip")
+    return q
+
 
 def score_business(p, period_df, prev_df, current_margin, previous_margin, veresiye_total):
-total = max(1, len(p))
-critical = len(p[(p["gunluk_satis"] > 0) & (p["tahmini_bitis_gunu"] <= 7)]) / total
-dead = len(p[p["olu_stok_mu"]]) / total
-slow_value_ratio = p[p["sermaye_sinifi"].isin(["Ölü/Yavaş", "Yavaş Dönen"])] ["stok_degeri"].sum() / max(1, p["stok_degeri"].sum())
-low_margin = len(p[(p["toplam_ciro"] > 0) & (p["kar_marji"] < 0.10)]) / total
-c = period_df["ciro"].sum(); pr = prev_df["ciro"].sum()
-sales = 0 if pr == 0 else (c-pr)/pr
-score = 76 + sales22 + current_margin35 - critical25 - dead20 - slow_value_ratio22 - low_margin10 - min(.12, veresiye_total/max(c,1))*40
-return int(max(0, min(100, round(score))))
+    total = max(1, len(p))
+    critical = len(p[(p["gunluk_satis"] > 0) & (p["tahmini_bitis_gunu"] <= 7)]) / total
+    dead = len(p[p["olu_stok_mu"]]) / total
+    slow_value_ratio = p[p["sermaye_sinifi"].isin(["Ölü/Yavaş", "Yavaş Dönen"])] ["stok_degeri"].sum() / max(1, p["stok_degeri"].sum())
+    low_margin = len(p[(p["toplam_ciro"] > 0) & (p["kar_marji"] < 0.10)]) / total
+    c = period_df["ciro"].sum(); pr = prev_df["ciro"].sum()
+    sales = 0 if pr == 0 else (c-pr)/pr
+    score = 76 + sales*22 + current_margin*35 - critical*25 - dead*20 - slow_value_ratio*22 - low_margin*10 - min(.12, veresiye_total/max(c,1))*40
+    return int(max(0, min(100, round(score))))
+
 
 def ai_advisor(period_df, prev_df, p, critical_df, dead_df, order_df, low_margin_df, veresiye_total):
-messages = []
-c = period_df["ciro"].sum(); pr = prev_df["ciro"].sum()
-if pr > 0:
-r = (c-pr)/pr
-messages.append(f"Seçilen dönemde ciro önceki döneme göre {pct_fmt(abs(r))} {'arttı' if r>=0 else 'düştü'}.")
-cat_now = period_df.groupby("kategori")["ciro"].sum().sort_values(ascending=False)
-cat_prev = prev_df.groupby("kategori")["ciro"].sum() if not prev_df.empty else pd.Series(dtype=float)
-if not cat_now.empty:
-best_cat = cat_now.index[0]
-messages.append(f"Ciro lideri {best_cat}; bu kategori raf ve stok odağında tutulmalı.")
-profit_cat = p.groupby("kategori")["toplam_kar"].sum().sort_values(ascending=False)
-if not profit_cat.empty:
-messages.append(f"En çok para kazandıran ürün grubu {profit_cat.index[0]}; sadece ciroya değil bu gruba da alan açılmalı.")
-if not critical_df.empty:
-x = critical_df.sort_values("tahmini_bitis_gunu").iloc[0]
-messages.append(f"{x['urun']} yaklaşık {num_fmt(x['tahmini_bitis_gunu'],0)} gün içinde bitebilir; sipariş önceliği yüksek.")
-if not dead_df.empty:
-messages.append(f"Ölü/yavaş stoklarda {money_fmt(dead_df['stok_degeri'].sum())} sermaye kilitli; kampanya ve raf azaltma aksiyonu önerilir.")
-if not order_df.empty:
-messages.append(f"Sipariş motoru {len(order_df)} ürün için {money_fmt(order_df['siparis_maliyeti'].sum())} yaklaşık sipariş maliyeti hesapladı.")
-if not low_margin_df.empty:
-low = low_margin_df.sort_values("toplam_ciro", ascending=False).iloc[0]
-messages.append(f"{low['urun']} yüksek satışa rağmen düşük marjlı; alış fiyatı veya satış fiyatı kontrol edilmeli.")
-if veresiye_total > 0:
-messages.append(f"Tahsilat/veresiye açığı {money_fmt(veresiye_total)}; nakit akışını bozabilir.")
-return " ".join(messages) if messages else "Genel tablo dengeli. Satış, stok ve kârlılık riskleri düşük görünüyor."
+    messages = []
+    c = period_df["ciro"].sum(); pr = prev_df["ciro"].sum()
+    if pr > 0:
+        r = (c-pr)/pr
+        messages.append(f"Seçilen dönemde ciro önceki döneme göre {pct_fmt(abs(r))} {'arttı' if r>=0 else 'düştü'}.")
+    cat_now = period_df.groupby("kategori")["ciro"].sum().sort_values(ascending=False)
+    cat_prev = prev_df.groupby("kategori")["ciro"].sum() if not prev_df.empty else pd.Series(dtype=float)
+    if not cat_now.empty:
+        best_cat = cat_now.index[0]
+        messages.append(f"Ciro lideri {best_cat}; bu kategori raf ve stok odağında tutulmalı.")
+    profit_cat = p.groupby("kategori")["toplam_kar"].sum().sort_values(ascending=False)
+    if not profit_cat.empty:
+        messages.append(f"En çok para kazandıran ürün grubu {profit_cat.index[0]}; sadece ciroya değil bu gruba da alan açılmalı.")
+    if not critical_df.empty:
+        x = critical_df.sort_values("tahmini_bitis_gunu").iloc[0]
+        messages.append(f"{x['urun']} yaklaşık {num_fmt(x['tahmini_bitis_gunu'],0)} gün içinde bitebilir; sipariş önceliği yüksek.")
+    if not dead_df.empty:
+        messages.append(f"Ölü/yavaş stoklarda {money_fmt(dead_df['stok_degeri'].sum())} sermaye kilitli; kampanya ve raf azaltma aksiyonu önerilir.")
+    if not order_df.empty:
+        messages.append(f"Sipariş motoru {len(order_df)} ürün için {money_fmt(order_df['siparis_maliyeti'].sum())} yaklaşık sipariş maliyeti hesapladı.")
+    if not low_margin_df.empty:
+        low = low_margin_df.sort_values("toplam_ciro", ascending=False).iloc[0]
+        messages.append(f"{low['urun']} yüksek satışa rağmen düşük marjlı; alış fiyatı veya satış fiyatı kontrol edilmeli.")
+    if veresiye_total > 0:
+        messages.append(f"Tahsilat/veresiye açığı {money_fmt(veresiye_total)}; nakit akışını bozabilir.")
+    return " ".join(messages) if messages else "Genel tablo dengeli. Satış, stok ve kârlılık riskleri düşük görünüyor."
+
 
 def excel_report(df, p, cat, order_df, dead_df, low_margin_df, cash_df):
-out = BytesIO()
-with pd.ExcelWriter(out, engine="openpyxl") as writer:
-df.to_excel(writer, "Ham_Veri", index=False)
-p.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Urun_Analizi", index=False)
-cat.to_excel(writer, "Kategori_Analizi", index=False)
-order_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Siparis", index=False)
-dead_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Olu_Stok", index=False)
-low_margin_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Dusuk_Marj", index=False)
-cash_df.to_excel(writer, "Tahsilat", index=False)
-return out.getvalue()
+    out = BytesIO()
+    with pd.ExcelWriter(out, engine="openpyxl") as writer:
+        df.to_excel(writer, "Ham_Veri", index=False)
+        p.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Urun_Analizi", index=False)
+        cat.to_excel(writer, "Kategori_Analizi", index=False)
+        order_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Siparis", index=False)
+        dead_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Olu_Stok", index=False)
+        low_margin_df.replace([np.inf, -np.inf], np.nan).to_excel(writer, "Dusuk_Marj", index=False)
+        cash_df.to_excel(writer, "Tahsilat", index=False)
+    return out.getvalue()
 
-============================================================
-Sidebar
-============================================================
+# ============================================================
+# Sidebar
+# ============================================================
 st.sidebar.title("🛒 AYÇA Business")
 st.sidebar.caption("Market V1.0 Executive")
 market_adi = st.sidebar.text_input("Market Adı", "Demo Market")
@@ -361,18 +291,18 @@ dead_days = st.sidebar.slider("Ölü stok günü", 30, 240, 90)
 skt_days = st.sidebar.slider("SKT uyarı günü", 30, 180, 90)
 
 if uploaded is None:
-st.markdown("""
-AYÇA Business MarketMarket sahibinin dijital genel müdür yardımcısı.Excel bekleniyor
-""", unsafe_allow_html=True)
-st.info("Sol menüden örnek Excel dosyasını yükle: ayca_business_market_ornek_veri_v1.xlsx")
-st.stop()
+    st.markdown("""
+    <div class="header"><div class="title"><h1>AYÇA Business Market</h1><p>Market sahibinin dijital genel müdür yardımcısı.</p></div><div class="pill">Excel bekleniyor</div></div>
+    """, unsafe_allow_html=True)
+    st.info("Sol menüden örnek Excel dosyasını yükle: ayca_business_market_ornek_veri_v1.xlsx")
+    st.stop()
 
 try:
-raw, sheet_name = read_excel_smart(uploaded)
-df = standardize(raw)
+    raw, sheet_name = read_excel_smart(uploaded)
+    df = standardize(raw)
 except Exception as exc:
-st.error(f"Dosya okunurken hata oluştu: {exc}")
-st.stop()
+    st.error(f"Dosya okunurken hata oluştu: {exc}")
+    st.stop()
 
 today = pd.Timestamp.today().normalize()
 p = classify(product_table(df, today), critical_days, warning_days, dead_days)
@@ -399,7 +329,7 @@ low_margin_df = p[(p["toplam_ciro"] > 0) & (p["kar_marji"] < 0.10)].copy().sort_
 skt_df = p[p["skt_kalan_gun"].notna() & (p["skt_kalan_gun"] <= skt_days)].copy().sort_values("skt_kalan_gun")
 score = score_business(p, period_df, prev_df, marj, prev_marj, veresiye_total)
 
-Category table
+# Category table
 cat = p.groupby("kategori").agg(ciro=("toplam_ciro","sum"), kar=("toplam_kar","sum"), stok_degeri=("stok_degeri","sum"), sku=("urun","count"), raf_cm=("raf_cm","sum"), son90=("son90","sum")).reset_index()
 cat["marj"] = np.where(cat["ciro"]>0, cat["kar"]/cat["ciro"], 0)
 cat["raf_kar_verimi"] = np.where(cat["raf_cm"]>0, cat["kar"]/cat["raf_cm"], 0)
@@ -409,8 +339,10 @@ cat = cat.sort_values("kar", ascending=False)
 cash_df = period_df.groupby("odeme").agg(ciro=("ciro","sum"), veresiye=("veresiye","sum"), islem=("fis", pd.Series.nunique)).reset_index().sort_values("ciro", ascending=False)
 
 st.markdown(f"""
+<div class="header"><div class="title"><h1>AYÇA Business Market V1.0</h1><p>{market_adi} · {period} · Sayfa: {sheet_name} · {datetime.now().strftime('%d.%m.%Y')}</p></div><div class="pill">İşletme Skoru: {score}/100</div></div>
+""", unsafe_allow_html=True)
 
-KPI
+# KPI
 ct, cc = trend(ciro, prev_ciro); kt, kc = trend(kar, prev_kar); mt, mc = trend(marj, prev_marj)
 cols = st.columns(6)
 with cols[0]: metric_card("Ciro", money_fmt(ciro), period, ct, cc)
@@ -420,91 +352,103 @@ with cols[3]: metric_card("Toplam Stok Değeri", money_fmt(stock_value), "İçer
 with cols[4]: metric_card("Veresiye Açığı", money_fmt(veresiye_total), "Tahsilat riski")
 with cols[5]: metric_card("Ortalama Sepet", money_fmt(avg_basket), f"{fis} işlem")
 
-Executive AI block
+# Executive AI block
 ai_text = ai_advisor(period_df, prev_df, p, critical_df, dead_df, order_df, low_margin_df, veresiye_total)
 st.markdown(f"""
+<div class="ai-card"><div class="ai-title">🤖 AYÇA Ticaret Asistanı</div><div class="ai-text">{ai_text}</div></div>
+""", unsafe_allow_html=True)
 
-Radar + daily tasks
+# Radar + daily tasks
 fast_value = p[p["sermaye_sinifi"]=="Hızlı Dönen"]["stok_degeri"].sum()
 slow_value = p[p["sermaye_sinifi"].isin(["Yavaş Dönen", "Ölü/Yavaş"])] ["stok_degeri"].sum()
 best_profit_cat = cat.iloc[0]["kategori"] if not cat.empty else "-"
 best_margin_cat = cat.sort_values("marj", ascending=False).iloc[0]["kategori"] if not cat.empty else "-"
 radar_html = f"""
+<div class="radar">
+<div class="radar-card"><div class="radar-title">Acil Stok</div><div class="radar-value">🔴 {len(critical_df)}</div><div class="radar-note">{critical_days} gün altı</div></div>
+<div class="radar-card"><div class="radar-title">Sipariş</div><div class="radar-value">🛒 {len(order_df)}</div><div class="radar-note">{money_fmt(order_df['siparis_maliyeti'].sum())}</div></div>
+<div class="radar-card"><div class="radar-title">Ölü Stok</div><div class="radar-value">💀 {len(dead_df)}</div><div class="radar-note">{money_fmt(dead_df['stok_degeri'].sum())}</div></div>
+<div class="radar-card"><div class="radar-title">Sermaye Kilidi</div><div class="radar-value">🔒 {money_fmt(slow_value)}</div><div class="radar-note">Yavaş/ölü stok</div></div>
+<div class="radar-card"><div class="radar-title">En Karlı Grup</div><div class="radar-value">💰 {best_profit_cat}</div><div class="radar-note">Toplam kâr lideri</div></div>
+<div class="radar-card"><div class="radar-title">SKT Riski</div><div class="radar-value">⏳ {len(skt_df)}</div><div class="radar-note">{skt_days} gün içinde</div></div>
+</div>
+"""
+st.markdown(radar_html, unsafe_allow_html=True)
 
-st.markdown('Yönetici Görev Listesi', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Yönetici Görev Listesi</div>', unsafe_allow_html=True)
 tasks = []
 if not critical_df.empty:
-x = critical_df.sort_values("tahmini_bitis_gunu").iloc[0]
-tasks.append(f"☐ {x['urun']} için sipariş aç; tahmini bitiş {num_fmt(x['tahmini_bitis_gunu'],0)} gün.")
+    x = critical_df.sort_values("tahmini_bitis_gunu").iloc[0]
+    tasks.append(f"☐ {x['urun']} için sipariş aç; tahmini bitiş {num_fmt(x['tahmini_bitis_gunu'],0)} gün.")
 if not dead_df.empty:
-x = dead_df.iloc[0]
-tasks.append(f"☐ {x['urun']} için kampanya/raf azaltma aksiyonu al; bağlı para {money_fmt(x['stok_degeri'])}.")
+    x = dead_df.iloc[0]
+    tasks.append(f"☐ {x['urun']} için kampanya/raf azaltma aksiyonu al; bağlı para {money_fmt(x['stok_degeri'])}.")
 if not cat.empty:
-tasks.append(f"☐ {best_profit_cat} kategorisine stok ve raf önceliği ver; en yüksek kâr buradan geliyor.")
+    tasks.append(f"☐ {best_profit_cat} kategorisine stok ve raf önceliği ver; en yüksek kâr buradan geliyor.")
 if not low_margin_df.empty:
-x = low_margin_df.iloc[0]
-tasks.append(f"☐ {x['urun']} düşük marjlı; alış veya satış fiyatını kontrol et.")
+    x = low_margin_df.iloc[0]
+    tasks.append(f"☐ {x['urun']} düşük marjlı; alış veya satış fiyatını kontrol et.")
 if veresiye_total > 0:
-tasks.append(f"☐ Veresiye/tahsilat listesini kontrol et; açık tutar {money_fmt(veresiye_total)}.")
+    tasks.append(f"☐ Veresiye/tahsilat listesini kontrol et; açık tutar {money_fmt(veresiye_total)}.")
 while len(tasks) < 5:
-tasks.append("☐ Gün sonunda satış-stok dengesini tekrar kontrol et.")
-st.markdown('' + ''.join([f'{t}' for t in tasks[:5]]) + '', unsafe_allow_html=True)
+    tasks.append("☐ Gün sonunda satış-stok dengesini tekrar kontrol et.")
+st.markdown('<div class="card">' + ''.join([f'<div class="task-item">{t}</div>' for t in tasks[:5]]) + '</div>', unsafe_allow_html=True)
 
-Tabs
-st.markdown('Detaylı Analiz Merkezleri', unsafe_allow_html=True)
+# Tabs
+st.markdown('<div class="section-title">Detaylı Analiz Merkezleri</div>', unsafe_allow_html=True)
 tabs = st.tabs(["📊 Kategori Gücü", "💰 Kârlılık", "🔒 Sermaye Kilidi", "💀 Ölü Stok", "🛒 Sipariş", "📦 Stok", "⏳ SKT", "💳 Tahsilat", "📥 Rapor"])
 
 with tabs[0]:
-c1, c2 = st.columns([1,1])
-with c1:
-fig = px.bar(cat.sort_values("kar", ascending=True), x="kar", y="kategori", orientation="h", title="Kategori Bazlı Brüt Kâr")
-st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
-with c2:
-fig = px.scatter(cat, x="ciro", y="marj", size="stok_degeri", hover_name="kategori", title="Ciro / Marj / Stok Değeri Haritası")
-st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
-st.dataframe(cat.assign(ciro=cat.ciro.round(0), kar=cat.kar.round(0), stok_degeri=cat.stok_degeri.round(0), marj=cat.marj.round(3)).replace([np.inf,-np.inf], np.nan), use_container_width=True)
+    c1, c2 = st.columns([1,1])
+    with c1:
+        fig = px.bar(cat.sort_values("kar", ascending=True), x="kar", y="kategori", orientation="h", title="Kategori Bazlı Brüt Kâr")
+        st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
+    with c2:
+        fig = px.scatter(cat, x="ciro", y="marj", size="stok_degeri", hover_name="kategori", title="Ciro / Marj / Stok Değeri Haritası")
+        st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
+    st.dataframe(cat.assign(ciro=cat.ciro.round(0), kar=cat.kar.round(0), stok_degeri=cat.stok_degeri.round(0), marj=cat.marj.round(3)).replace([np.inf,-np.inf], np.nan), use_container_width=True)
 
 with tabs[1]:
-st.subheader("En kârlı ürün grupları ve düşük marj uyarıları")
-top_products = p.sort_values("toplam_kar", ascending=False).head(30)
-fig = px.bar(top_products.sort_values("toplam_kar", ascending=True), x="toplam_kar", y="urun", orientation="h", title="En Çok Kâr Getiren Ürünler")
-st.plotly_chart(plot_theme(fig, 520), use_container_width=True)
-st.markdown("#### Düşük marjlı ama satış yapan ürünler")
-st.dataframe(low_margin_df[["urun","kategori","marka","toplam_ciro","toplam_kar","kar_marji","stok","stok_degeri"]].head(100), use_container_width=True)
+    st.subheader("En kârlı ürün grupları ve düşük marj uyarıları")
+    top_products = p.sort_values("toplam_kar", ascending=False).head(30)
+    fig = px.bar(top_products.sort_values("toplam_kar", ascending=True), x="toplam_kar", y="urun", orientation="h", title="En Çok Kâr Getiren Ürünler")
+    st.plotly_chart(plot_theme(fig, 520), use_container_width=True)
+    st.markdown("#### Düşük marjlı ama satış yapan ürünler")
+    st.dataframe(low_margin_df[["urun","kategori","marka","toplam_ciro","toplam_kar","kar_marji","stok","stok_degeri"]].head(100), use_container_width=True)
 
 with tabs[2]:
-st.subheader("İçerideki mal değeri ve sermaye kilidi")
-capital = p.groupby("sermaye_sinifi")["stok_degeri"].sum().reset_index().sort_values("stok_degeri", ascending=False)
-fig = px.pie(capital, names="sermaye_sinifi", values="stok_degeri", title="Stok Sermayesi Dağılımı")
-st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
-st.dataframe(p.sort_values("stok_degeri", ascending=False)[["urun","kategori","marka","stok","stok_degeri","son90","tahmini_bitis_gunu","sermaye_sinifi","stok_devir"]].head(150).replace([np.inf,-np.inf], np.nan), use_container_width=True)
+    st.subheader("İçerideki mal değeri ve sermaye kilidi")
+    capital = p.groupby("sermaye_sinifi")["stok_degeri"].sum().reset_index().sort_values("stok_degeri", ascending=False)
+    fig = px.pie(capital, names="sermaye_sinifi", values="stok_degeri", title="Stok Sermayesi Dağılımı")
+    st.plotly_chart(plot_theme(fig, 420), use_container_width=True)
+    st.dataframe(p.sort_values("stok_degeri", ascending=False)[["urun","kategori","marka","stok","stok_degeri","son90","tahmini_bitis_gunu","sermaye_sinifi","stok_devir"]].head(150).replace([np.inf,-np.inf], np.nan), use_container_width=True)
 
 with tabs[3]:
-st.subheader("Ölü / yavaş stok merkezi")
-st.warning(f"Ölü/yavaş stoklarda toplam {money_fmt(dead_df['stok_degeri'].sum())} değerinde sermaye görünüyor.")
-st.dataframe(dead_df[["urun","kategori","marka","stok","stok_degeri","son90","son_satis_kac_gun","raf","raf_cm","kampanya_onerisi"]].head(200), use_container_width=True)
+    st.subheader("Ölü / yavaş stok merkezi")
+    st.warning(f"Ölü/yavaş stoklarda toplam {money_fmt(dead_df['stok_degeri'].sum())} değerinde sermaye görünüyor.")
+    st.dataframe(dead_df[["urun","kategori","marka","stok","stok_degeri","son90","son_satis_kac_gun","raf","raf_cm","kampanya_onerisi"]].head(200), use_container_width=True)
 
 with tabs[4]:
-st.subheader("Sipariş asistanı")
-st.info(f"Toplam önerilen sipariş maliyeti: {money_fmt(order_df['siparis_maliyeti'].sum())}")
-st.dataframe(order_df[["urun","kategori","marka","stok","son90","gunluk_satis","tahmini_bitis_gunu","siparis_adedi","siparis_maliyeti","tedarikci"]].head(200).replace([np.inf,-np.inf], np.nan), use_container_width=True)
+    st.subheader("Sipariş asistanı")
+    st.info(f"Toplam önerilen sipariş maliyeti: {money_fmt(order_df['siparis_maliyeti'].sum())}")
+    st.dataframe(order_df[["urun","kategori","marka","stok","son90","gunluk_satis","tahmini_bitis_gunu","siparis_adedi","siparis_maliyeti","tedarikci"]].head(200).replace([np.inf,-np.inf], np.nan), use_container_width=True)
 
 with tabs[5]:
-st.subheader("Stok bitiş tahmini")
-stock_view = p.sort_values("tahmini_bitis_gunu")[["urun","kategori","marka","stok","son90","gunluk_satis","tahmini_bitis_gunu","stok_degeri","hiz_sinifi"]]
-st.dataframe(stock_view.replace([np.inf,-np.inf], np.nan).head(250), use_container_width=True)
+    st.subheader("Stok bitiş tahmini")
+    stock_view = p.sort_values("tahmini_bitis_gunu")[["urun","kategori","marka","stok","son90","gunluk_satis","tahmini_bitis_gunu","stok_degeri","hiz_sinifi"]]
+    st.dataframe(stock_view.replace([np.inf,-np.inf], np.nan).head(250), use_container_width=True)
 
 with tabs[6]:
-st.subheader("SKT / son kullanma riski")
-st.dataframe(skt_df[["urun","kategori","marka","stok","stok_degeri","skt","skt_kalan_gun","son90","kampanya_onerisi"]].head(200), use_container_width=True)
+    st.subheader("SKT / son kullanma riski")
+    st.dataframe(skt_df[["urun","kategori","marka","stok","stok_degeri","skt","skt_kalan_gun","son90","kampanya_onerisi"]].head(200), use_container_width=True)
 
 with tabs[7]:
-st.subheader("Tahsilat ve ödeme tipi analizi")
-fig = px.bar(cash_df, x="odeme", y="ciro", title="Ödeme Tipine Göre Ciro")
-st.plotly_chart(plot_theme(fig, 380), use_container_width=True)
-st.dataframe(cash_df, use_container_width=True)
+    st.subheader("Tahsilat ve ödeme tipi analizi")
+    fig = px.bar(cash_df, x="odeme", y="ciro", title="Ödeme Tipine Göre Ciro")
+    st.plotly_chart(plot_theme(fig, 380), use_container_width=True)
+    st.dataframe(cash_df, use_container_width=True)
 
 with tabs[8]:
-st.subheader("Excel raporu indir")
-st.download_button("📥 AYÇA Business analiz raporunu indir", data=excel_report(df, p, cat, order_df, dead_df, low_margin_df, cash_df), file_name="ayca_business_market_analiz_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-st.caption("Rapor; ham veri, ürün analizi, kategori analizi, sipariş, ölü stok, düşük marj ve tahsilat sayfalarını içerir.")
+    st.subheader("Excel raporu indir")
+    st.download_button("📥 AYÇA Business analiz raporunu indir", data=excel_report(df, p, cat, order_df, dead_df, low_margin_df, cash_df), file_name="ayca_business_market_analiz_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    st.caption("Rapor; ham veri, ürün analizi, kategori analizi, sipariş, ölü stok, düşük marj ve tahsilat sayfalarını içerir.")
