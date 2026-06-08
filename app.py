@@ -1,5 +1,5 @@
 # ============================================================
-# AYÇA Business Market V1.2 Stable Executive Dashboard
+# AYÇA Business Market V1.3 Stable Executive Dashboard
 # Market / Perakende İşletme Yönetim Paneli
 # ------------------------------------------------------------
 # Beklenen Excel sayfası: AYCA_BUSINESS_DATA
@@ -367,19 +367,16 @@ def standardize(raw):
             df[col] = default
 
     df["maliyet"] = df["maliyet"].fillna(df["adet"] * df["alis"])
-    # Marj kolonu güvenli hesaplama
-    # Not: fillna() içine ndarray verilirse Streamlit Cloud'da
-    # "value parameter must be a scalar, dict or Series, but you passed a ndarray" hatası oluşabilir.
-    calculated_margin = pd.Series(
+    calculated_marj = pd.Series(
         np.where(df["ciro"] > 0, df["kar"] / df["ciro"], 0),
         index=df.index
     )
-
     if mapping["marj"]:
-        margin_series = pd.to_numeric(raw[mapping["marj"]], errors="coerce")
-        df["marj"] = margin_series.combine_first(calculated_margin).fillna(0)
+        existing_marj = pd.to_numeric(raw[mapping["marj"]], errors="coerce")
+        existing_marj.index = df.index
+        df["marj"] = existing_marj.combine_first(calculated_marj).fillna(0)
     else:
-        df["marj"] = calculated_margin.fillna(0)
+        df["marj"] = calculated_marj.fillna(0)
 
     df["odeme"] = raw[mapping["odeme"]].astype(str) if mapping["odeme"] else "Bilinmiyor"
     df["tahsil_durum"] = raw[mapping["tahsil_durum"]].astype(str) if mapping["tahsil_durum"] else "Tahsil Edildi"
@@ -491,28 +488,55 @@ def ai_comment(p, period, prev, category):
 
 
 def excel_report(df, p, cat, order, dead, slow, collection):
-    """Boş tablo gelse bile Excel raporunu güvenli üretir."""
+    """Excel raporunu Streamlit Cloud'da güvenli üretir.
+
+    Not: openpyxl bazı Python/Cloud kombinasyonlarında
+    "At least one sheet must be visible" hatası verebiliyor.
+    Bu nedenle rapor motoru xlsxwriter olarak ayarlandı.
+    """
     out = BytesIO()
 
     def safe_df(x):
         if x is None or not isinstance(x, pd.DataFrame) or x.empty:
             return pd.DataFrame({"Bilgi": ["Bu bölüm için veri bulunamadı."]})
-        return x.replace([np.inf, -np.inf], np.nan)
+        y = x.copy()
+        y = y.replace([np.inf, -np.inf], np.nan)
+        # Excel yazımında sorun çıkarabilecek object/list değerleri metne çevir.
+        for col in y.columns:
+            if y[col].dtype == "object":
+                y[col] = y[col].apply(lambda v: str(v) if isinstance(v, (list, tuple, dict, set, np.ndarray)) else v)
+        return y
 
-    with pd.ExcelWriter(out, engine="openpyxl") as writer:
-        pd.DataFrame({
+    sheets = {
+        "Ozet": pd.DataFrame({
             "Rapor": ["AYÇA Business Market"],
-            "Sürüm": ["V1.2 Stable"],
-            "Durum": ["Başarıyla oluşturuldu"],
-            "Tarih": [pd.Timestamp.now()],
-        }).to_excel(writer, "Ozet", index=False)
-        safe_df(df).to_excel(writer, "Ham Veri", index=False)
-        safe_df(p).to_excel(writer, "Ürün Analizi", index=False)
-        safe_df(cat).to_excel(writer, "Kategori Karlılık", index=False)
-        safe_df(order).to_excel(writer, "Sipariş", index=False)
-        safe_df(dead).to_excel(writer, "Ölü Stok", index=False)
-        safe_df(slow).to_excel(writer, "Yavaş Stok", index=False)
-        safe_df(collection).to_excel(writer, "Tahsilat", index=False)
+            "Surum": ["V1.3 Stable"],
+            "Durum": ["Basariyla olusturuldu"],
+            "Tarih": [pd.Timestamp.now().strftime("%d.%m.%Y %H:%M")],
+        }),
+        "Ham_Veri": safe_df(df),
+        "Urun_Analizi": safe_df(p),
+        "Kategori": safe_df(cat),
+        "Siparis": safe_df(order),
+        "Olu_Stok": safe_df(dead),
+        "Yavas_Stok": safe_df(slow),
+        "Tahsilat": safe_df(collection),
+    }
+
+    try:
+        with pd.ExcelWriter(out, engine="xlsxwriter") as writer:
+            for sheet_name, frame in sheets.items():
+                # Excel sheet adı 31 karakteri geçmemeli.
+                frame.to_excel(writer, sheet_name=sheet_name[:31], index=False)
+                worksheet = writer.sheets[sheet_name[:31]]
+                worksheet.set_column(0, min(len(frame.columns), 20), 18)
+    except Exception:
+        # xlsxwriter yoksa son çare CSV benzeri tek sayfalı openpyxl denemesi.
+        # Bu blok normalde çalışmaz; requirements'a xlsxwriter eklenmeli.
+        out = BytesIO()
+        with pd.ExcelWriter(out, engine="openpyxl") as writer:
+            sheets["Ozet"].to_excel(writer, sheet_name="Ozet", index=False)
+
     out.seek(0)
     return out.getvalue()
 
@@ -526,7 +550,7 @@ if st.sidebar.button("Çıkış Yap", use_container_width=True):
     safe_rerun()
 
 st.sidebar.title("🛒 AYÇA Business")
-st.sidebar.caption("Market V1.2 Stable Demo")
+st.sidebar.caption("Market V1.3 Stable Demo")
 store_name = st.sidebar.text_input("Market / İşletme Adı", value="AYÇA Market")
 owner_name = st.sidebar.text_input("Kullanıcı", value="Abdullah Bey")
 file = st.sidebar.file_uploader("Market Excel dosyasını yükle", type=["xlsx", "xls"])
@@ -541,7 +565,7 @@ if file is None:
     st.markdown(
         """
         <div class="ayca-header">
-          <div class="ayca-title"><h1>AYÇA Business Market V1.2</h1><p>Market verinizi yükleyerek satış, stok, kârlılık ve sermaye analizini başlatın.</p></div>
+          <div class="ayca-title"><h1>AYÇA Business Market V1.3</h1><p>Market verinizi yükleyerek satış, stok, kârlılık ve sermaye analizini başlatın.</p></div>
           <div class="header-pill">Dosya bekleniyor</div>
         </div>
         """,
@@ -613,7 +637,7 @@ collection = df[df["acik_tahsilat"] > 0].copy()
 st.markdown(
     f"""
     <div class="ayca-header">
-      <div class="ayca-title"><h1>AYÇA Business Market V1.2</h1><p>{escape(store_name)} · {period_choice} · Sayfa: {escape(str(sheet))} · {datetime.now().strftime('%d.%m.%Y')}</p></div>
+      <div class="ayca-title"><h1>AYÇA Business Market V1.3</h1><p>{escape(store_name)} · {period_choice} · Sayfa: {escape(str(sheet))} · {datetime.now().strftime('%d.%m.%Y')}</p></div>
       <div class="header-pill">İşletme Skoru: {score}/100</div>
     </div>
     """,
@@ -770,4 +794,4 @@ with t_report:
     st.caption("Rapor içinde Ozet, Ham Veri, Ürün Analizi, Kategori Kârlılık, Sipariş, Ölü Stok, Yavaş Stok ve Tahsilat sayfaları bulunur.")
 
 st.divider()
-st.caption("AYÇA Business Market V1.2 · Veriler kalıcı olarak saklanmaz. Excel dosyası anlık analiz edilir.")
+st.caption("AYÇA Business Market V1.3 · Veriler kalıcı olarak saklanmaz. Excel dosyası anlık analiz edilir.")
