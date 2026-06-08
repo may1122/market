@@ -1,5 +1,5 @@
 # ============================================================
-# AYÇA Business Market V1.1 Executive Dashboard
+# AYÇA Business Market V1.2 Stable Executive Dashboard
 # Market / Perakende İşletme Yönetim Paneli
 # ------------------------------------------------------------
 # Beklenen Excel sayfası: AYCA_BUSINESS_DATA
@@ -367,10 +367,19 @@ def standardize(raw):
             df[col] = default
 
     df["maliyet"] = df["maliyet"].fillna(df["adet"] * df["alis"])
+    # Marj kolonu güvenli hesaplama
+    # Not: fillna() içine ndarray verilirse Streamlit Cloud'da
+    # "value parameter must be a scalar, dict or Series, but you passed a ndarray" hatası oluşabilir.
+    calculated_margin = pd.Series(
+        np.where(df["ciro"] > 0, df["kar"] / df["ciro"], 0),
+        index=df.index
+    )
+
     if mapping["marj"]:
-        df["marj"] = pd.to_numeric(raw[mapping["marj"]], errors="coerce").fillna(np.where(df["ciro"] > 0, df["kar"] / df["ciro"], 0))
+        margin_series = pd.to_numeric(raw[mapping["marj"]], errors="coerce")
+        df["marj"] = margin_series.combine_first(calculated_margin).fillna(0)
     else:
-        df["marj"] = np.where(df["ciro"] > 0, df["kar"] / df["ciro"], 0)
+        df["marj"] = calculated_margin.fillna(0)
 
     df["odeme"] = raw[mapping["odeme"]].astype(str) if mapping["odeme"] else "Bilinmiyor"
     df["tahsil_durum"] = raw[mapping["tahsil_durum"]].astype(str) if mapping["tahsil_durum"] else "Tahsil Edildi"
@@ -493,7 +502,7 @@ def excel_report(df, p, cat, order, dead, slow, collection):
     with pd.ExcelWriter(out, engine="openpyxl") as writer:
         pd.DataFrame({
             "Rapor": ["AYÇA Business Market"],
-            "Sürüm": ["V1.1"],
+            "Sürüm": ["V1.2 Stable"],
             "Durum": ["Başarıyla oluşturuldu"],
             "Tarih": [pd.Timestamp.now()],
         }).to_excel(writer, "Ozet", index=False)
@@ -517,7 +526,7 @@ if st.sidebar.button("Çıkış Yap", use_container_width=True):
     safe_rerun()
 
 st.sidebar.title("🛒 AYÇA Business")
-st.sidebar.caption("Market V1.1 Executive Demo")
+st.sidebar.caption("Market V1.2 Stable Demo")
 store_name = st.sidebar.text_input("Market / İşletme Adı", value="AYÇA Market")
 owner_name = st.sidebar.text_input("Kullanıcı", value="Abdullah Bey")
 file = st.sidebar.file_uploader("Market Excel dosyasını yükle", type=["xlsx", "xls"])
@@ -532,7 +541,7 @@ if file is None:
     st.markdown(
         """
         <div class="ayca-header">
-          <div class="ayca-title"><h1>AYÇA Business Market V1.1</h1><p>Market verinizi yükleyerek satış, stok, kârlılık ve sermaye analizini başlatın.</p></div>
+          <div class="ayca-title"><h1>AYÇA Business Market V1.2</h1><p>Market verinizi yükleyerek satış, stok, kârlılık ve sermaye analizini başlatın.</p></div>
           <div class="header-pill">Dosya bekleniyor</div>
         </div>
         """,
@@ -604,7 +613,7 @@ collection = df[df["acik_tahsilat"] > 0].copy()
 st.markdown(
     f"""
     <div class="ayca-header">
-      <div class="ayca-title"><h1>AYÇA Business Market V1.1</h1><p>{escape(store_name)} · {period_choice} · Sayfa: {escape(str(sheet))} · {datetime.now().strftime('%d.%m.%Y')}</p></div>
+      <div class="ayca-title"><h1>AYÇA Business Market V1.2</h1><p>{escape(store_name)} · {period_choice} · Sayfa: {escape(str(sheet))} · {datetime.now().strftime('%d.%m.%Y')}</p></div>
       <div class="header-pill">İşletme Skoru: {score}/100</div>
     </div>
     """,
@@ -761,4 +770,4 @@ with t_report:
     st.caption("Rapor içinde Ozet, Ham Veri, Ürün Analizi, Kategori Kârlılık, Sipariş, Ölü Stok, Yavaş Stok ve Tahsilat sayfaları bulunur.")
 
 st.divider()
-st.caption("AYÇA Business Market V1.1 · Veriler kalıcı olarak saklanmaz. Excel dosyası anlık analiz edilir.")
+st.caption("AYÇA Business Market V1.2 · Veriler kalıcı olarak saklanmaz. Excel dosyası anlık analiz edilir.")
